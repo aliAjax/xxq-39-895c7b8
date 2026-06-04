@@ -37,12 +37,7 @@ export function Sidebar() {
           新建角色
         </button>
         <button
-          onClick={() => {
-            setShowMaterialLibrary(!showMaterialLibrary);
-            if (!showMaterialLibrary) {
-              setActiveCharacter(null);
-            }
-          }}
+          onClick={() => setShowMaterialLibrary(!showMaterialLibrary)}
           className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg transition-all duration-200 font-medium ${
             showMaterialLibrary
               ? 'bg-accent/20 text-accent border border-accent/50'
