@@ -12,6 +12,7 @@ import {
 import { useStore } from '../store/useStore';
 import { useMaterialStore } from '../store/useMaterialStore';
 import { MaterialSelector } from './MaterialSelector';
+import { TaskList } from './TaskList';
 
 interface EditorPanelProps {
   isNew?: boolean;
@@ -101,6 +102,7 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
         questions: formData.questions || '',
         status: formData.status as ProductionStatus,
         needToBuy: formData.needToBuy || false,
+        tasks: [],
       });
     } else if (selectedElementId) {
       updateElement(activeCharacterId, selectedElementId, formData);
@@ -417,6 +419,16 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
             加入采购清单
           </label>
         </div>
+
+        {!isNew && activeCharacterId && selectedElementId && element && (
+          <div className="pt-4 border-t border-white/10">
+            <TaskList
+              elementId={selectedElementId}
+              characterId={activeCharacterId}
+              tasks={element.tasks || []}
+            />
+          </div>
+        )}
       </div>
 
       <div className="p-4 border-t border-white/10 flex gap-2">

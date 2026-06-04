@@ -4,6 +4,8 @@ export type DifficultyLevel = 'easy' | 'medium' | 'hard' | 'expert';
 
 export type ProductionStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed';
 
+export type TaskType = 'cutting' | 'pattern_making' | 'procurement' | 'sewing' | 'coloring' | 'fitting' | 'other';
+
 export type ReferenceTag = ClothingCategory;
 
 export interface ReferenceImage {
@@ -11,6 +13,15 @@ export interface ReferenceImage {
   url: string;
   tags: ReferenceTag[];
   notes: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ProductionTask {
+  id: string;
+  type: TaskType;
+  name: string;
+  completed: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -27,6 +38,7 @@ export interface ClothingElement {
   questions: string;
   status: ProductionStatus;
   needToBuy: boolean;
+  tasks: ProductionTask[];
   createdAt: number;
   updatedAt: number;
 }
@@ -129,3 +141,15 @@ export const COLOR_CATEGORY_LABELS: Record<ColorCategory, string> = {
   secondary: '辅色',
   accent: '点缀色',
 };
+
+export const TASK_TYPE_LABELS: Record<TaskType, string> = {
+  cutting: '裁剪',
+  pattern_making: '打版',
+  procurement: '采购',
+  sewing: '缝制',
+  coloring: '上色',
+  fitting: '试穿',
+  other: '其他',
+};
+
+export const DEFAULT_TASK_TYPES: TaskType[] = ['pattern_making', 'procurement', 'cutting', 'sewing', 'coloring', 'fitting'];

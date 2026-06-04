@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor } from '../types';
+import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, DEFAULT_TASK_TYPES, TASK_TYPE_LABELS } from '../types';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 import { sampleCharacters } from '../data/sampleData';
 
@@ -45,6 +45,13 @@ interface StoreState {
   deletePaletteColor: (characterId: string, colorId: string) => void;
   autoGeneratePalette: (characterId: string) => void;
   getElementsUsingColor: (characterId: string, color: string) => ClothingElement[];
+
+  addTask: (characterId: string, elementId: string, task: Omit<ProductionTask, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateTask: (characterId: string, elementId: string, taskId: string, updates: Partial<ProductionTask>) => void;
+  deleteTask: (characterId: string, elementId: string, taskId: string) => void;
+  toggleTaskComplete: (characterId: string, elementId: string, taskId: string) => void;
+  addDefaultTasks: (characterId: string, elementId: string) => void;
+  getTaskProgress: (element: ClothingElement) => number;
   
   getActiveCharacter: () => Character | undefined;
   getFilteredElements: () => ClothingElement[];
@@ -122,6 +129,7 @@ export const useStore = create<StoreState>((set, get) => ({
           questions: '',
           status: 'pending',
           needToBuy: false,
+          tasks: [],
           createdAt: now,
           updatedAt: now,
         }))
@@ -180,6 +188,7 @@ export const useStore = create<StoreState>((set, get) => ({
     const newElement: ClothingElement = {
       ...element,
       id: `el-${Date.now()}`,
+      tasks: element.tasks || [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -491,6 +500,143 @@ export const useStore = create<StoreState>((set, get) => ({
       (el) => el.status === 'completed'
     ).length;
     return Math.round((completed / character.elements.length) * 100);
+  },
+
+  addTask: (characterId, elementId, task) => {
+    const now = Date.now();
+    const newTask: ProductionTask = {
+      ...task,
+      id: `task-${now}`,
+      createdAt: now,
+      updatedAt: now,
+    };
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              elements: char.elements.map((el) =>
+                el.id === elementId
+                  ? { ...el, tasks: [...el.tasks, newTask], updatedAt: now }
+                  : el
+              ),
+              updatedAt: now,
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  updateTask: (characterId, elementId, taskId, updates) => {
+    const now = Date.now();
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              elements: char.elements.map((el) =>
+                el.id === elementId
+                  ? {
+                      ...el,
+                      tasks: el.tasks.map((t) =>
+                        t.id === taskId ? { ...t, ...updates, updatedAt: now } : t
+                      ),
+                      updatedAt: now,
+                    }
+                  : el
+              ),
+              updatedAt: now,
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  deleteTask: (characterId, elementId, taskId) => {
+    const now = Date.now();
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              elements: char.elements.map((el) =>
+                el.id === elementId
+                  ? { ...el, tasks: el.tasks.filter((t) => t.id !== taskId), updatedAt: now }
+                  : el
+              ),
+              updatedAt: now,
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  toggleTaskComplete: (characterId, elementId, taskId) => {
+    const now = Date.now();
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              elements: char.elements.map((el) =>
+                el.id === elementId
+                  ? {
+                      ...el,
+                      tasks: el.tasks.map((t) =>
+                        t.id === taskId ? { ...t, completed: !t.completed, updatedAt: now } : t
+                      ),
+                      updatedAt: now,
+                    }
+                  : el
+              ),
+              updatedAt: now,
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  addDefaultTasks: (characterId, elementId) => {
+    const now = Date.now();
+    const defaultTasks: ProductionTask[] = DEFAULT_TASK_TYPES.map((type, index) => ({
+      id: `task-${now}-${index}`,
+      type,
+      name: TASK_TYPE_LABELS[type],
+      completed: false,
+      createdAt: now,
+      updatedAt: now,
+    }));
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              elements: char.elements.map((el) =>
+                el.id === elementId
+                  ? { ...el, tasks: [...el.tasks, ...defaultTasks], updatedAt: now }
+                  : el
+              ),
+              updatedAt: now,
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  getTaskProgress: (element) => {
+    if (!element.tasks || element.tasks.length === 0) return 0;
+    const completed = element.tasks.filter((t) => t.completed).length;
+    return Math.round((completed / element.tasks.length) * 100);
   },
 
   getFilteredReferenceImages: (tagFilter) => {

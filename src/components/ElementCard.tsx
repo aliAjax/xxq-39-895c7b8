@@ -1,4 +1,4 @@
-import { Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Plus, Edit3 } from 'lucide-react';
+import { Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Plus, Edit3, ListTodo } from 'lucide-react';
 import { ClothingElement, ClothingCategory, STATUS_LABELS, DIFFICULTY_LABELS, CATEGORY_LABELS } from '../types';
 import { useStore } from '../store/useStore';
 
@@ -31,10 +31,11 @@ interface ElementCardProps {
 }
 
 export function ElementCard({ element, index }: ElementCardProps) {
-  const { selectedElementId, setSelectedElement } = useStore();
+  const { selectedElementId, setSelectedElement, getTaskProgress } = useStore();
   const Icon = categoryIcons[element.category];
   const isSelected = selectedElementId === element.id;
   const isPlaceholder = !element.name.trim();
+  const taskProgress = getTaskProgress(element);
 
   return (
     <div
@@ -130,6 +131,26 @@ export function ElementCard({ element, index }: ElementCardProps) {
               ? element.questions.slice(0, 30) + '...'
               : element.questions}
           </p>
+        </div>
+      )}
+
+      {element.tasks && element.tasks.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-white/10">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs text-gray-500 flex items-center gap-1">
+              <ListTodo size={12} />
+              任务进度
+            </span>
+            <span className="text-xs text-gray-400">
+              {element.tasks.filter((t) => t.completed).length}/{element.tasks.length}
+            </span>
+          </div>
+          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-accent to-accent-light transition-all duration-300"
+              style={{ width: `${taskProgress}%` }}
+            />
+          </div>
         </div>
       )}
 

@@ -1,4 +1,16 @@
-import { Character } from '../types';
+import { Character, DEFAULT_TASK_TYPES, TASK_TYPE_LABELS, ProductionTask } from '../types';
+
+const createDefaultTasks = (completedCount: number = 0): ProductionTask[] => {
+  const now = Date.now();
+  return DEFAULT_TASK_TYPES.map((type, index) => ({
+    id: `sample-task-${now}-${index}`,
+    type,
+    name: TASK_TYPE_LABELS[type],
+    completed: index < completedCount,
+    createdAt: now,
+    updatedAt: now,
+  }));
+};
 
 export const sampleCharacters: Character[] = [
   {
@@ -19,6 +31,7 @@ export const sampleCharacters: Character[] = [
         questions: '宝石的具体形状？',
         status: 'confirmed',
         needToBuy: true,
+        tasks: createDefaultTasks(2),
         createdAt: Date.now(),
         updatedAt: Date.now(),
       },
@@ -34,6 +47,7 @@ export const sampleCharacters: Character[] = [
         questions: '',
         status: 'in_progress',
         needToBuy: true,
+        tasks: createDefaultTasks(3),
         createdAt: Date.now(),
         updatedAt: Date.now(),
       },
@@ -49,6 +63,7 @@ export const sampleCharacters: Character[] = [
         questions: '',
         status: 'pending',
         needToBuy: true,
+        tasks: createDefaultTasks(1),
         createdAt: Date.now(),
         updatedAt: Date.now(),
       },
@@ -64,6 +79,7 @@ export const sampleCharacters: Character[] = [
         questions: '',
         status: 'completed',
         needToBuy: false,
+        tasks: createDefaultTasks(6),
         createdAt: Date.now(),
         updatedAt: Date.now(),
       },
@@ -79,6 +95,7 @@ export const sampleCharacters: Character[] = [
         questions: 'LED灯的安装位置？',
         status: 'pending',
         needToBuy: true,
+        tasks: createDefaultTasks(0),
         createdAt: Date.now(),
         updatedAt: Date.now(),
       },
