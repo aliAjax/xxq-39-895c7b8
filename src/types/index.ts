@@ -94,3 +94,13 @@ export const CATEGORY_ICONS: Record<ClothingCategory, string> = {
   accessory: 'Sparkles',
   weapon: 'Sword',
 };
+
+export interface Material {
+  id: string;
+  name: string;
+  applicableParts: ClothingCategory[];
+  notes: string;
+  needToBuy: boolean;
+  createdAt: number;
+  updatedAt: number;
+}

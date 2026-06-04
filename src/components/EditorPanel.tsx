@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Plus, Link, Image } from 'lucide-react';
+import { X, Trash2, Plus, Link, Image, Package } from 'lucide-react';
 import {
   ClothingElement,
   ClothingCategory,
@@ -10,6 +10,8 @@ import {
   STATUS_LABELS,
 } from '../types';
 import { useStore } from '../store/useStore';
+import { useMaterialStore } from '../store/useMaterialStore';
+import { MaterialSelector } from './MaterialSelector';
 
 interface EditorPanelProps {
   isNew?: boolean;
@@ -26,6 +28,7 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
     characters,
     newElementFromReference,
   } = useStore();
+  const { setShowMaterialSelector, showMaterialSelector } = useMaterialStore();
 
   const character = characters.find((c) => c.id === activeCharacterId);
   const element = character?.elements.find((e) => e.id === selectedElementId);
@@ -130,6 +133,15 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
         materials: [...(formData.materials || []), newMaterial.trim()],
       });
       setNewMaterial('');
+    }
+  };
+
+  const addMaterialFromLibrary = (materialName: string) => {
+    if (!formData.materials?.includes(materialName)) {
+      setFormData({
+        ...formData,
+        materials: [...(formData.materials || []), materialName],
+      });
     }
   };
 
@@ -294,8 +306,16 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
             <button
               onClick={addMaterial}
               className="px-3 py-2 bg-accent hover:bg-accent-dark text-white rounded-lg text-sm transition-colors"
+              title="手动添加"
             >
               <Plus size={16} />
+            </button>
+            <button
+              onClick={() => setShowMaterialSelector(true)}
+              className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-colors"
+              title="从材质库选择"
+            >
+              <Package size={16} />
             </button>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -416,6 +436,14 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
           </button>
         )}
       </div>
+
+      {showMaterialSelector && (
+        <MaterialSelector
+          currentMaterials={formData.materials || []}
+          onSelect={addMaterialFromLibrary}
+          onClose={() => setShowMaterialSelector(false)}
+        />
+      )}
     </div>
   );
 }

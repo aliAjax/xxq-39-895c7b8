@@ -1,5 +1,6 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Package } from 'lucide-react';
 import { useStore } from '../store/useStore';
+import { useMaterialStore } from '../store/useMaterialStore';
 
 export function Sidebar() {
   const {
@@ -9,6 +10,7 @@ export function Sidebar() {
     setShowCharacterWizard,
     deleteCharacter,
   } = useStore();
+  const { showMaterialLibrary, setShowMaterialLibrary, materials } = useMaterialStore();
 
   const getCharacterProgress = (id: string) => {
     const char = characters.find((c) => c.id === id);
@@ -26,13 +28,32 @@ export function Sidebar() {
         <p className="text-sm text-gray-400 mt-1">COSPLAY / 原画设计工具</p>
       </div>
 
-      <div className="p-4">
+      <div className="p-4 space-y-2">
         <button
           onClick={() => setShowCharacterWizard(true)}
           className="w-full flex items-center justify-center gap-2 bg-accent hover:bg-accent-dark text-white py-3 px-4 rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
         >
           <Plus size={20} />
           新建角色
+        </button>
+        <button
+          onClick={() => {
+            setShowMaterialLibrary(!showMaterialLibrary);
+            if (!showMaterialLibrary) {
+              setActiveCharacter(null);
+            }
+          }}
+          className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg transition-all duration-200 font-medium ${
+            showMaterialLibrary
+              ? 'bg-accent/20 text-accent border border-accent/50'
+              : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-transparent'
+          }`}
+        >
+          <Package size={18} />
+          材质库
+          <span className="text-xs px-1.5 py-0.5 bg-white/10 rounded">
+            {materials.length}
+          </span>
         </button>
       </div>
 

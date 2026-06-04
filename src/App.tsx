@@ -5,10 +5,13 @@ import { EditorPanel } from './components/EditorPanel';
 import { ShoppingList } from './components/ShoppingList';
 import { ReferenceBoard } from './components/ReferenceBoard';
 import { CharacterCreationWizard } from './components/CharacterCreationWizard';
+import { MaterialLibrary } from './components/MaterialLibrary';
 import { useStore } from './store/useStore';
+import { useMaterialStore } from './store/useMaterialStore';
 
 function App() {
-  const { selectedElementId, showReferenceBoard } = useStore();
+  const { selectedElementId, showReferenceBoard, showShoppingList } = useStore();
+  const { showMaterialLibrary } = useMaterialStore();
   const isAddingNew = selectedElementId === 'new';
   const showEditor = selectedElementId !== null;
 
@@ -19,13 +22,19 @@ function App() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
         <main id="main-content" className="flex-1 flex overflow-hidden">
-          <ClothingGrid />
-          {showEditor && <EditorPanel isNew={isAddingNew} />}
-          {showReferenceBoard && <ReferenceBoard />}
+          {showMaterialLibrary ? (
+            <MaterialLibrary />
+          ) : (
+            <>
+              <ClothingGrid />
+              {showEditor && <EditorPanel isNew={isAddingNew} />}
+              {showReferenceBoard && <ReferenceBoard />}
+            </>
+          )}
         </main>
       </div>
 
-      <ShoppingList />
+      {!showMaterialLibrary && showShoppingList && <ShoppingList />}
       <CharacterCreationWizard />
     </div>
   );
