@@ -71,6 +71,7 @@ interface StoreState {
   getBudgetSummary: () => BudgetSummary | null;
   updateElementBudget: (characterId: string, elementId: string, budget: Partial<BudgetItem>) => void;
   toggleElementPurchased: (characterId: string, elementId: string) => void;
+  replaceCharacters: (characters: Character[]) => void;
 }
 
 const initializeData = (): Character[] => {
@@ -742,6 +743,15 @@ export const useStore = create<StoreState>((set, get) => ({
     const element = character?.elements.find((e) => e.id === elementId);
     const currentBudget = element?.budget || DEFAULT_BUDGET;
     state.updateElementBudget(characterId, elementId, { purchased: !currentBudget.purchased });
+  },
+
+  replaceCharacters: (characters) => {
+    saveToStorage(characters);
+    set({
+      characters,
+      activeCharacterId: characters.length > 0 ? characters[0].id : null,
+      selectedElementId: null,
+    });
   },
 }));
 

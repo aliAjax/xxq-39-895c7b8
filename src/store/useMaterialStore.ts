@@ -22,6 +22,7 @@ interface MaterialStoreState {
   addMaterial: (material: Omit<Material, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateMaterial: (id: string, updates: Partial<Material>) => void;
   deleteMaterial: (id: string) => void;
+  replaceMaterials: (materials: Material[]) => void;
 
   getFilteredMaterials: () => Material[];
 }
@@ -82,6 +83,11 @@ export const useMaterialStore = create<MaterialStoreState>((set, get) => ({
         selectedMaterialId: state.selectedMaterialId === id ? null : state.selectedMaterialId,
       };
     });
+  },
+
+  replaceMaterials: (materials) => {
+    saveMaterialsToStorage(materials);
+    set({ materials, selectedMaterialId: null });
   },
 
   getFilteredMaterials: () => {

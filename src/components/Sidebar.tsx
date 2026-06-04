@@ -1,6 +1,10 @@
-import { Plus, Trash2, Package } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Trash2, Package, Download, Upload } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useMaterialStore } from '../store/useMaterialStore';
+import { exportProjectPackage, readProjectPackage, generateImportPreview } from '../utils/projectPackage';
+import { ImportPreview as ImportPreviewType } from '../types';
+import { ImportPreviewModal } from './ImportPreviewModal';
 
 export function Sidebar() {
   const {
@@ -11,6 +15,37 @@ export function Sidebar() {
     deleteCharacter,
   } = useStore();
   const { showMaterialLibrary, setShowMaterialLibrary, materials } = useMaterialStore();
+
+  const [importPreview, setImportPreview] = useState<ImportPreviewType | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportProject = () => {
+    exportProjectPackage(characters, materials);
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportError(null);
+    try {
+      const pkg = await readProjectPackage(file);
+      const preview = generateImportPreview(pkg, characters, materials);
+      setImportPreview(preview);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : '导入失败');
+    }
+    e.target.value = '';
+  };
+
+  const handleClosePreview = () => {
+    setImportPreview(null);
+    setImportError(null);
+  };
 
   const getCharacterProgress = (id: string) => {
     const char = characters.find((c) => c.id === id);
@@ -50,6 +85,32 @@ export function Sidebar() {
             {materials.length}
           </span>
         </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleExportProject}
+            className="flex-1 flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-300 py-2.5 px-3 rounded-lg transition-all text-sm border border-transparent hover:border-white/10"
+          >
+            <Download size={16} />
+            导出
+          </button>
+          <button
+            onClick={handleImportClick}
+            className="flex-1 flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 text-gray-300 py-2.5 px-3 rounded-lg transition-all text-sm border border-transparent hover:border-white/10"
+          >
+            <Upload size={16} />
+            导入
+          </button>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+        {importError && (
+          <p className="text-xs text-red-400 px-2">{importError}</p>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-4">
@@ -146,6 +207,10 @@ export function Sidebar() {
           )}
         </div>
       </div>
+
+      {importPreview && (
+        <ImportPreviewModal preview={importPreview} onClose={handleClosePreview} />
+      )}
     </aside>
   );
 }

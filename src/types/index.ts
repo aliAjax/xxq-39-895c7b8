@@ -177,3 +177,25 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
 };
 
 export const DEFAULT_TASK_TYPES: TaskType[] = ['pattern_making', 'procurement', 'cutting', 'sewing', 'coloring', 'fitting'];
+
+export interface ProjectPackage {
+  version: string;
+  exportedAt: number;
+  characters: Character[];
+  materials: Material[];
+}
+
+export type ConflictResolution = 'overwrite' | 'skip' | 'saveAsNew';
+
+export interface ImportConflict {
+  importedCharacter: Character;
+  existingCharacter: Character;
+  resolution: ConflictResolution;
+}
+
+export interface ImportPreview {
+  newCharacters: Character[];
+  conflicts: ImportConflict[];
+  materialsToImport: Material[];
+  existingMaterialsCount: number;
+}
