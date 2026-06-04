@@ -19,19 +19,48 @@ const FIELD_LABELS: Record<string, string> = {
   updatedAt: '更新时间',
 };
 
+function getFieldLabel(field: string): string {
+  if (FIELD_LABELS[field]) {
+    return FIELD_LABELS[field];
+  }
+  return field;
+}
+
 function formatValue(field: string, value: unknown): string {
-  if (field === 'needToBuy') {
-    return value ? '需要采购' : '不需要采购';
-  }
-  if (field === 'applicableParts') {
-    return (value as string[]).join(', ') || '无';
-  }
-  if (field === 'createdAt' || field === 'updatedAt') {
-    return new Date(value as number).toLocaleString();
-  }
   if (value === null || value === undefined) {
     return '无';
   }
+
+  if (typeof value === 'boolean') {
+    if (field === 'needToBuy') {
+      return value ? '需要采购' : '不需要采购';
+    }
+    return value ? '是' : '否';
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '无';
+    return value.join(', ');
+  }
+
+  if (typeof value === 'number') {
+    if (field === 'createdAt' || field === 'updatedAt') {
+      return new Date(value).toLocaleString();
+    }
+    if (!isNaN(value) && isFinite(value) && value > 1e12) {
+      return new Date(value).toLocaleString();
+    }
+    return String(value);
+  }
+
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+
   return String(value);
 }
 
@@ -258,7 +287,7 @@ export function ImportPreviewModal({ preview, onClose }: ImportPreviewModalProps
                       {matConflict.changedFields.map((change, i) => (
                         <div key={i} className="flex items-start gap-2">
                           <span className="text-xs text-gray-500 flex-shrink-0 w-16">
-                            {FIELD_LABELS[change.field] || change.field}
+                            {getFieldLabel(change.field)}
                           </span>
                           <ArrowRight size={12} className="text-gray-600 flex-shrink-0 mt-1" />
                           <span className="text-xs text-gray-400 flex-1 min-w-0">

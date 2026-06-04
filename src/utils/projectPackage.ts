@@ -49,29 +49,41 @@ export function readProjectPackage(file: File): Promise<ProjectPackage> {
   });
 }
 
+function isEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (a === null || b === null || a === undefined || b === undefined) return a === b;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    const setA = new Set(a);
+    return b.every((item) => setA.has(item));
+  }
+  if (typeof a === 'object' && typeof b === 'object') {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+  return false;
+}
+
 function getMaterialChangedFields(imported: Material, existing: Material): Array<{
   field: keyof Material;
   importedValue: unknown;
   existingValue: unknown;
 }> {
-  const fields: Array<keyof Material> = ['name', 'applicableParts', 'notes', 'needToBuy', 'createdAt', 'updatedAt'];
   const changed: Array<{
     field: keyof Material;
     importedValue: unknown;
     existingValue: unknown;
   }> = [];
 
-  for (const field of fields) {
+  const allKeys = new Set<keyof Material>([
+    ...(Object.keys(imported) as Array<keyof Material>),
+    ...(Object.keys(existing) as Array<keyof Material>),
+  ]);
+
+  for (const field of allKeys) {
     const iv = imported[field];
     const ev = existing[field];
 
-    if (field === 'applicableParts') {
-      const ivArr = iv as string[];
-      const evArr = ev as string[];
-      if (ivArr.length !== evArr.length || !ivArr.every((v) => evArr.includes(v))) {
-        changed.push({ field, importedValue: iv, existingValue: ev });
-      }
-    } else if (iv !== ev) {
+    if (!isEqual(iv, ev)) {
       changed.push({ field, importedValue: iv, existingValue: ev });
     }
   }
