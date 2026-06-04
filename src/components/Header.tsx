@@ -1,4 +1,4 @@
-import { Image, FileJson, ShoppingCart } from 'lucide-react';
+import { Image, FileJson, ShoppingCart, ImageIcon } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { exportToJSON, exportToImage } from '../utils/export';
 
@@ -10,6 +10,8 @@ export function Header() {
     getCompletionRate,
     setShowShoppingList,
     showShoppingList,
+    setShowReferenceBoard,
+    showReferenceBoard,
   } = useStore();
 
   const character = characters.find((c) => c.id === activeCharacterId);
@@ -104,6 +106,17 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowReferenceBoard(!showReferenceBoard)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${
+                showReferenceBoard
+                  ? 'bg-accent text-white'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
+            >
+              <ImageIcon size={18} />
+              参考图
+            </button>
             <button
               onClick={() => setShowShoppingList(!showShoppingList)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${

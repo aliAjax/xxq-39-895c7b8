@@ -4,6 +4,17 @@ export type DifficultyLevel = 'easy' | 'medium' | 'hard' | 'expert';
 
 export type ProductionStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed';
 
+export type ReferenceTag = ClothingCategory;
+
+export interface ReferenceImage {
+  id: string;
+  url: string;
+  tags: ReferenceTag[];
+  notes: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface ClothingElement {
   id: string;
   name: string;
@@ -26,6 +37,7 @@ export interface Character {
   source: string;
   description: string;
   elements: ClothingElement[];
+  referenceImages: ReferenceImage[];
   createdAt: number;
   updatedAt: number;
 }
@@ -36,7 +48,18 @@ export interface AppState {
   selectedCategory: ClothingCategory | 'all';
   selectedElementId: string | null;
   showShoppingList: boolean;
+  showReferenceBoard: boolean;
+  newElementFromReference: { imageUrl: string; category: ClothingCategory } | null;
 }
+
+export const REFERENCE_TAG_LABELS: Record<ReferenceTag, string> = {
+  head: '头部',
+  top: '上衣',
+  bottom: '下装',
+  shoes: '鞋袜',
+  accessory: '配饰',
+  weapon: '武器',
+};
 
 export const CATEGORY_LABELS: Record<ClothingCategory | 'all', string> = {
   all: '全部',

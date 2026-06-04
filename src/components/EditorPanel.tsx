@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Plus, Link } from 'lucide-react';
+import { X, Trash2, Plus, Link, Image } from 'lucide-react';
 import {
   ClothingElement,
   ClothingCategory,
@@ -24,6 +24,8 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
     updateElement,
     deleteElement,
     characters,
+    newElementFromReference,
+    setNewElementFromReference,
   } = useStore();
 
   const character = characters.find((c) => c.id === activeCharacterId);
@@ -52,20 +54,43 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
     if (element && !isNew) {
       setFormData(element);
     } else if (isNew) {
-      setFormData({
-        name: '',
-        category: 'head',
-        colors: [],
-        materials: [],
-        difficulty: 'medium',
-        referenceImages: [],
-        notes: '',
-        questions: '',
-        status: 'pending',
-        needToBuy: false,
-      });
+      if (newElementFromReference) {
+        setFormData({
+          name: '',
+          category: newElementFromReference.category,
+          colors: [],
+          materials: [],
+          difficulty: 'medium',
+          referenceImages: [newElementFromReference.imageUrl],
+          notes: '',
+          questions: '',
+          status: 'pending',
+          needToBuy: false,
+        });
+      } else {
+        setFormData({
+          name: '',
+          category: 'head',
+          colors: [],
+          materials: [],
+          difficulty: 'medium',
+          referenceImages: [],
+          notes: '',
+          questions: '',
+          status: 'pending',
+          needToBuy: false,
+        });
+      }
     }
-  }, [element, isNew]);
+  }, [element, isNew, newElementFromReference]);
+
+  useEffect(() => {
+    return () => {
+      if (newElementFromReference) {
+        setNewElementFromReference(null);
+      }
+    };
+  }, [newElementFromReference, setNewElementFromReference]);
 
   const handleSave = () => {
     if (!activeCharacterId || !formData.name) return;
@@ -145,9 +170,17 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
   return (
     <div className="w-80 bg-primary-light border-l border-white/10 flex flex-col animate-slide-in">
       <div className="p-4 border-b border-white/10 flex items-center justify-between">
-        <h2 className="font-semibold text-white">
-          {isNew ? '添加元素' : '编辑元素'}
-        </h2>
+        <div>
+          <h2 className="font-semibold text-white">
+            {isNew ? '添加元素' : '编辑元素'}
+          </h2>
+          {newElementFromReference && (
+            <div className="flex items-center gap-1 mt-1 text-xs text-success">
+              <Image size={12} />
+              <span>从参考图创建 · {CATEGORY_LABELS[newElementFromReference.category]}</span>
+            </div>
+          )}
+        </div>
         <button
           onClick={() => setSelectedElement(null)}
           className="p-1.5 hover:bg-white/10 rounded transition-colors"

@@ -3,10 +3,11 @@ import { Header } from './components/Header';
 import { ClothingGrid } from './components/ClothingGrid';
 import { EditorPanel } from './components/EditorPanel';
 import { ShoppingList } from './components/ShoppingList';
+import { ReferenceBoard } from './components/ReferenceBoard';
 import { useStore } from './store/useStore';
 
 function App() {
-  const { selectedElementId } = useStore();
+  const { selectedElementId, showReferenceBoard } = useStore();
   const isAddingNew = selectedElementId === 'new';
   const showEditor = selectedElementId !== null;
 
@@ -19,6 +20,7 @@ function App() {
         <main id="main-content" className="flex-1 flex overflow-hidden">
           <ClothingGrid />
           {showEditor && <EditorPanel isNew={isAddingNew} />}
+          {showReferenceBoard && <ReferenceBoard />}
         </main>
       </div>
 

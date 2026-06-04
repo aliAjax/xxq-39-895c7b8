@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Character, ClothingElement, ClothingCategory } from '../types';
+import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag } from '../types';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 import { sampleCharacters } from '../data/sampleData';
 
@@ -9,11 +9,15 @@ interface StoreState {
   selectedCategory: ClothingCategory | 'all';
   selectedElementId: string | null;
   showShoppingList: boolean;
+  showReferenceBoard: boolean;
+  newElementFromReference: { imageUrl: string; category: ClothingCategory } | null;
   
   setActiveCharacter: (id: string | null) => void;
   setSelectedCategory: (category: ClothingCategory | 'all') => void;
   setSelectedElement: (id: string | null) => void;
   setShowShoppingList: (show: boolean) => void;
+  setShowReferenceBoard: (show: boolean) => void;
+  setNewElementFromReference: (data: { imageUrl: string; category: ClothingCategory } | null) => void;
   
   addCharacter: () => void;
   updateCharacter: (id: string, updates: Partial<Character>) => void;
@@ -23,9 +27,16 @@ interface StoreState {
   updateElement: (characterId: string, elementId: string, updates: Partial<ClothingElement>) => void;
   deleteElement: (characterId: string, elementId: string) => void;
   
+  addReferenceImage: (characterId: string, image: Omit<ReferenceImage, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateReferenceImage: (characterId: string, imageId: string, updates: Partial<ReferenceImage>) => void;
+  deleteReferenceImage: (characterId: string, imageId: string) => void;
+  toggleReferenceTag: (characterId: string, imageId: string, tag: ReferenceTag) => void;
+  createElementFromReference: (characterId: string, imageId: string, category: ClothingCategory) => void;
+  
   getActiveCharacter: () => Character | undefined;
   getFilteredElements: () => ClothingElement[];
   getCompletionRate: () => number;
+  getFilteredReferenceImages: (tagFilter: ReferenceTag | 'all') => ReferenceImage[];
 }
 
 const initializeData = (): Character[] => {
@@ -42,11 +53,15 @@ export const useStore = create<StoreState>((set, get) => ({
   selectedCategory: 'all',
   selectedElementId: null,
   showShoppingList: false,
+  showReferenceBoard: false,
+  newElementFromReference: null,
 
-  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null }),
+  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false }),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
-  setSelectedElement: (id) => set({ selectedElementId: id }),
-  setShowShoppingList: (show) => set({ showShoppingList: show }),
+  setSelectedElement: (id) => set({ selectedElementId: id, newElementFromReference: null }),
+  setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false }),
+  setShowReferenceBoard: (show) => set({ showReferenceBoard: show, showShoppingList: false }),
+  setNewElementFromReference: (data) => set({ newElementFromReference: data }),
 
   addCharacter: () => {
     const newCharacter: Character = {
@@ -55,6 +70,7 @@ export const useStore = create<StoreState>((set, get) => ({
       source: '',
       description: '',
       elements: [],
+      referenceImages: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -144,6 +160,97 @@ export const useStore = create<StoreState>((set, get) => ({
     });
   },
 
+  addReferenceImage: (characterId, image) => {
+    const newImage: ReferenceImage = {
+      ...image,
+      id: `ref-${Date.now()}`,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? { ...char, referenceImages: [...char.referenceImages, newImage], updatedAt: Date.now() }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  updateReferenceImage: (characterId, imageId, updates) => {
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              referenceImages: char.referenceImages.map((img) =>
+                img.id === imageId ? { ...img, ...updates, updatedAt: Date.now() } : img
+              ),
+              updatedAt: Date.now(),
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  deleteReferenceImage: (characterId, imageId) => {
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              referenceImages: char.referenceImages.filter((img) => img.id !== imageId),
+              updatedAt: Date.now(),
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  toggleReferenceTag: (characterId, imageId, tag) => {
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              referenceImages: char.referenceImages.map((img) =>
+                img.id === imageId
+                  ? {
+                      ...img,
+                      tags: img.tags.includes(tag)
+                        ? img.tags.filter((t) => t !== tag)
+                        : [...img.tags, tag],
+                      updatedAt: Date.now(),
+                    }
+                  : img
+              ),
+              updatedAt: Date.now(),
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  createElementFromReference: (characterId, imageId, category) => {
+    const state = get();
+    const character = state.characters.find((c) => c.id === characterId);
+    const image = character?.referenceImages.find((img) => img.id === imageId);
+    if (!image) return;
+
+    set({
+      newElementFromReference: { imageUrl: image.url, category },
+      selectedElementId: 'new',
+      showReferenceBoard: false,
+    });
+  },
+
   getActiveCharacter: () => {
     const state = get();
     return state.characters.find((char) => char.id === state.activeCharacterId);
@@ -165,6 +272,14 @@ export const useStore = create<StoreState>((set, get) => ({
       (el) => el.status === 'completed'
     ).length;
     return Math.round((completed / character.elements.length) * 100);
+  },
+
+  getFilteredReferenceImages: (tagFilter) => {
+    const state = get();
+    const character = state.characters.find((char) => char.id === state.activeCharacterId);
+    if (!character) return [];
+    if (tagFilter === 'all') return character.referenceImages;
+    return character.referenceImages.filter((img) => img.tags.includes(tagFilter));
   },
 }));
 

@@ -2,11 +2,23 @@ import { Character } from '../types';
 
 const STORAGE_KEY = 'cosplay-costume-analyzer-data';
 
+function migrateData(characters: Character[]): Character[] {
+  return characters.map((char) => ({
+    ...char,
+    referenceImages: char.referenceImages || [],
+    elements: char.elements.map((el) => ({
+      ...el,
+      referenceImages: el.referenceImages || [],
+    })),
+  }));
+}
+
 export function loadFromStorage(): Character[] | null {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     if (data) {
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      return migrateData(parsed);
     }
   } catch (error) {
     console.error('Failed to load from storage:', error);

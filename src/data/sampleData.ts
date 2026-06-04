@@ -83,6 +83,7 @@ export const sampleCharacters: Character[] = [
         updatedAt: Date.now(),
       },
     ],
+    referenceImages: [],
     createdAt: Date.now(),
     updatedAt: Date.now(),
   },
