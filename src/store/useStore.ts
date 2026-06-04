@@ -1,9 +1,17 @@
 import { create } from 'zustand';
-import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, DEFAULT_TASK_TYPES, TASK_TYPE_LABELS } from '../types';
+import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, DEFAULT_TASK_TYPES, TASK_TYPE_LABELS, BudgetSummary, BudgetItem } from '../types';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 import { sampleCharacters } from '../data/sampleData';
 
 const DEFAULT_CATEGORIES: ClothingCategory[] = ['head', 'top', 'bottom', 'shoes', 'accessory', 'weapon'];
+
+const DEFAULT_BUDGET: BudgetItem = {
+  materialCost: 0,
+  toolCost: 0,
+  outsourcingCost: 0,
+  purchased: false,
+  notes: '',
+};
 
 interface StoreState {
   characters: Character[];
@@ -13,6 +21,7 @@ interface StoreState {
   showShoppingList: boolean;
   showReferenceBoard: boolean;
   showColorPalette: boolean;
+  showBudgetPanel: boolean;
   newElementFromReference: { imageUrl: string; category: ClothingCategory } | null;
   showCharacterWizard: boolean;
   
@@ -22,6 +31,7 @@ interface StoreState {
   setShowShoppingList: (show: boolean) => void;
   setShowReferenceBoard: (show: boolean) => void;
   setShowColorPalette: (show: boolean) => void;
+  setShowBudgetPanel: (show: boolean) => void;
   setNewElementFromReference: (data: { imageUrl: string; category: ClothingCategory } | null) => void;
   setShowCharacterWizard: (show: boolean) => void;
   
@@ -57,6 +67,10 @@ interface StoreState {
   getFilteredElements: () => ClothingElement[];
   getCompletionRate: () => number;
   getFilteredReferenceImages: (tagFilter: ReferenceTag | 'all') => ReferenceImage[];
+  
+  getBudgetSummary: () => BudgetSummary | null;
+  updateElementBudget: (characterId: string, elementId: string, budget: Partial<BudgetItem>) => void;
+  toggleElementPurchased: (characterId: string, elementId: string) => void;
 }
 
 const initializeData = (): Character[] => {
@@ -75,15 +89,17 @@ export const useStore = create<StoreState>((set, get) => ({
   showShoppingList: false,
   showReferenceBoard: false,
   showColorPalette: false,
+  showBudgetPanel: false,
   newElementFromReference: null,
   showCharacterWizard: false,
 
-  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false }),
+  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false }),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
   setSelectedElement: (id) => set({ selectedElementId: id, newElementFromReference: null }),
-  setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false, showColorPalette: false }),
-  setShowReferenceBoard: (show) => set({ showReferenceBoard: show, showShoppingList: false, showColorPalette: false }),
-  setShowColorPalette: (show) => set({ showColorPalette: show, showShoppingList: false, showReferenceBoard: false }),
+  setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false }),
+  setShowReferenceBoard: (show) => set({ showReferenceBoard: show, showShoppingList: false, showColorPalette: false, showBudgetPanel: false }),
+  setShowColorPalette: (show) => set({ showColorPalette: show, showShoppingList: false, showReferenceBoard: false, showBudgetPanel: false }),
+  setShowBudgetPanel: (show) => set({ showBudgetPanel: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false }),
   setNewElementFromReference: (data) => set({ newElementFromReference: data }),
   setShowCharacterWizard: (show) => set({ showCharacterWizard: show }),
 
@@ -646,6 +662,86 @@ export const useStore = create<StoreState>((set, get) => ({
     if (!character) return [];
     if (tagFilter === 'all') return character.referenceImages;
     return character.referenceImages.filter((img) => img.tags.includes(tagFilter));
+  },
+
+  getBudgetSummary: () => {
+    const state = get();
+    const character = state.characters.find((char) => char.id === state.activeCharacterId);
+    if (!character) return null;
+
+    let totalEstimated = 0;
+    let totalPurchased = 0;
+
+    const categoryBreakdown: Record<ClothingCategory, { estimated: number; purchased: number }> = {
+      head: { estimated: 0, purchased: 0 },
+      top: { estimated: 0, purchased: 0 },
+      bottom: { estimated: 0, purchased: 0 },
+      shoes: { estimated: 0, purchased: 0 },
+      accessory: { estimated: 0, purchased: 0 },
+      weapon: { estimated: 0, purchased: 0 },
+    };
+
+    const elements = character.elements.map((el) => {
+      const budget = el.budget || DEFAULT_BUDGET;
+      const elementEstimated = budget.materialCost + budget.toolCost + budget.outsourcingCost;
+      const elementPurchased = budget.purchased ? elementEstimated : 0;
+
+      totalEstimated += elementEstimated;
+      totalPurchased += elementPurchased;
+
+      categoryBreakdown[el.category].estimated += elementEstimated;
+      categoryBreakdown[el.category].purchased += elementPurchased;
+
+      return {
+        id: el.id,
+        name: el.name,
+        category: el.category,
+        estimated: elementEstimated,
+        purchased: elementPurchased,
+        purchasedStatus: budget.purchased,
+      };
+    });
+
+    return {
+      totalEstimated,
+      totalPurchased,
+      totalRemaining: totalEstimated - totalPurchased,
+      categoryBreakdown,
+      elements,
+    };
+  },
+
+  updateElementBudget: (characterId, elementId, budget) => {
+    const now = Date.now();
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              elements: char.elements.map((el) =>
+                el.id === elementId
+                  ? {
+                      ...el,
+                      budget: { ...DEFAULT_BUDGET, ...el.budget, ...budget },
+                      updatedAt: now,
+                    }
+                  : el
+              ),
+              updatedAt: now,
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  toggleElementPurchased: (characterId, elementId) => {
+    const state = get();
+    const character = state.characters.find((c) => c.id === characterId);
+    const element = character?.elements.find((e) => e.id === elementId);
+    const currentBudget = element?.budget || DEFAULT_BUDGET;
+    state.updateElementBudget(characterId, elementId, { purchased: !currentBudget.purchased });
   },
 }));
 

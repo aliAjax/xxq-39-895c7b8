@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { ClothingGrid } from './components/ClothingGrid';
 import { EditorPanel } from './components/EditorPanel';
 import { ShoppingList } from './components/ShoppingList';
+import { BudgetPanel } from './components/BudgetPanel';
 import { ReferenceBoard } from './components/ReferenceBoard';
 import { CharacterCreationWizard } from './components/CharacterCreationWizard';
 import { MaterialLibrary } from './components/MaterialLibrary';
@@ -11,7 +12,7 @@ import { useStore } from './store/useStore';
 import { useMaterialStore } from './store/useMaterialStore';
 
 function App() {
-  const { selectedElementId, showReferenceBoard, showShoppingList, showColorPalette } = useStore();
+  const { selectedElementId, showReferenceBoard, showShoppingList, showColorPalette, showBudgetPanel } = useStore();
   const { showMaterialLibrary } = useMaterialStore();
   const isAddingNew = selectedElementId === 'new';
   const showEditor = selectedElementId !== null;
@@ -37,6 +38,7 @@ function App() {
 
       {!showMaterialLibrary && showShoppingList && <ShoppingList />}
       {!showMaterialLibrary && showColorPalette && <ColorPalette />}
+      {!showMaterialLibrary && showBudgetPanel && <BudgetPanel />}
       <CharacterCreationWizard />
     </div>
   );

@@ -1,4 +1,4 @@
-import { Image, FileJson, ShoppingCart, ImageIcon, Palette } from 'lucide-react';
+import { Image, FileJson, ShoppingCart, ImageIcon, Palette, Wallet } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { exportToJSON, exportToImage } from '../utils/export';
 
@@ -14,6 +14,8 @@ export function Header() {
     showReferenceBoard,
     setShowColorPalette,
     showColorPalette,
+    setShowBudgetPanel,
+    showBudgetPanel,
   } = useStore();
 
   const character = characters.find((c) => c.id === activeCharacterId);
@@ -140,6 +142,17 @@ export function Header() {
             >
               <ShoppingCart size={18} />
               采购清单
+            </button>
+            <button
+              onClick={() => setShowBudgetPanel(!showBudgetPanel)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${
+                showBudgetPanel
+                  ? 'bg-accent text-white'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
+            >
+              <Wallet size={18} />
+              预算管理
             </button>
             <button
               onClick={() => exportToJSON(character)}

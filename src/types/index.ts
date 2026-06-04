@@ -26,6 +26,29 @@ export interface ProductionTask {
   updatedAt: number;
 }
 
+export interface BudgetItem {
+  materialCost: number;
+  toolCost: number;
+  outsourcingCost: number;
+  purchased: boolean;
+  notes: string;
+}
+
+export interface BudgetSummary {
+  totalEstimated: number;
+  totalPurchased: number;
+  totalRemaining: number;
+  categoryBreakdown: Record<ClothingCategory, { estimated: number; purchased: number }>;
+  elements: Array<{
+    id: string;
+    name: string;
+    category: ClothingCategory;
+    estimated: number;
+    purchased: number;
+    purchasedStatus: boolean;
+  }>;
+}
+
 export interface ClothingElement {
   id: string;
   name: string;
@@ -39,6 +62,7 @@ export interface ClothingElement {
   status: ProductionStatus;
   needToBuy: boolean;
   tasks: ProductionTask[];
+  budget?: BudgetItem;
   createdAt: number;
   updatedAt: number;
 }

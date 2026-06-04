@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Plus, Link, Image, Package } from 'lucide-react';
+import { X, Trash2, Plus, Link, Image, Package, Wallet } from 'lucide-react';
 import {
   ClothingElement,
   ClothingCategory,
   DifficultyLevel,
   ProductionStatus,
+  BudgetItem,
   CATEGORY_LABELS,
   DIFFICULTY_LABELS,
   STATUS_LABELS,
@@ -18,6 +19,14 @@ interface EditorPanelProps {
   isNew?: boolean;
 }
 
+const DEFAULT_BUDGET: BudgetItem = {
+  materialCost: 0,
+  toolCost: 0,
+  outsourcingCost: 0,
+  purchased: false,
+  notes: '',
+};
+
 export function EditorPanel({ isNew = false }: EditorPanelProps) {
   const {
     activeCharacterId,
@@ -28,6 +37,7 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
     deleteElement,
     characters,
     newElementFromReference,
+    updateElementBudget,
   } = useStore();
   const { setShowMaterialSelector, showMaterialSelector } = useMaterialStore();
 
@@ -49,6 +59,8 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
     needToBuy: false,
   });
 
+  const [budgetData, setBudgetData] = useState<BudgetItem>(DEFAULT_BUDGET);
+
   const [newColor, setNewColor] = useState('#ffffff');
   const [newMaterial, setNewMaterial] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
@@ -56,6 +68,7 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
   useEffect(() => {
     if (element && !isNew) {
       setFormData(element);
+      setBudgetData(element.budget || DEFAULT_BUDGET);
     } else if (isNew) {
       if (newElementFromReference) {
         setFormData({
@@ -84,6 +97,7 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
           needToBuy: false,
         });
       }
+      setBudgetData(DEFAULT_BUDGET);
     }
   }, [element, isNew, newElementFromReference]);
 
@@ -102,10 +116,12 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
         questions: formData.questions || '',
         status: formData.status as ProductionStatus,
         needToBuy: formData.needToBuy || false,
+        budget: budgetData,
         tasks: [],
       });
     } else if (selectedElementId) {
       updateElement(activeCharacterId, selectedElementId, formData);
+      updateElementBudget(activeCharacterId, selectedElementId, budgetData);
     }
     setSelectedElement(null);
   };
@@ -418,6 +434,87 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
           <label htmlFor="needToBuy" className="text-sm text-gray-300">
             加入采购清单
           </label>
+        </div>
+
+        <div className="pt-4 border-t border-white/10">
+          <div className="flex items-center gap-2 mb-4">
+            <Wallet size={16} className="text-accent" />
+            <h3 className="font-semibold text-white">预算管理</h3>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1.5">材料费用 (¥)</label>
+              <input
+                type="number"
+                value={budgetData.materialCost || ''}
+                onChange={(e) => setBudgetData({ ...budgetData, materialCost: Number(e.target.value) || 0 })}
+                className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-accent/50 text-sm"
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1.5">工具费用 (¥)</label>
+              <input
+                type="number"
+                value={budgetData.toolCost || ''}
+                onChange={(e) => setBudgetData({ ...budgetData, toolCost: Number(e.target.value) || 0 })}
+                className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-accent/50 text-sm"
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1.5">外包费用 (¥)</label>
+              <input
+                type="number"
+                value={budgetData.outsourcingCost || ''}
+                onChange={(e) => setBudgetData({ ...budgetData, outsourcingCost: Number(e.target.value) || 0 })}
+                className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-accent/50 text-sm"
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+              />
+            </div>
+
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-400">预计总费用</span>
+                <span className="text-lg font-bold text-accent">
+                  ¥{(budgetData.materialCost + budgetData.toolCost + budgetData.outsourcingCost).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="budgetPurchased"
+                checked={budgetData.purchased}
+                onChange={(e) => setBudgetData({ ...budgetData, purchased: e.target.checked })}
+                className="w-4 h-4 rounded border-white/20 bg-white/10 text-accent focus:ring-accent/50"
+              />
+              <label htmlFor="budgetPurchased" className="text-sm text-gray-300">
+                已采购
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1.5">预算备注</label>
+              <textarea
+                value={budgetData.notes}
+                onChange={(e) => setBudgetData({ ...budgetData, notes: e.target.value })}
+                className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-accent/50 resize-none text-sm"
+                rows={2}
+                placeholder="采购渠道、比价信息等..."
+              />
+            </div>
+          </div>
         </div>
 
         {!isNew && activeCharacterId && selectedElementId && element && (

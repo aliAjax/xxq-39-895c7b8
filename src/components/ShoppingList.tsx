@@ -1,4 +1,4 @@
-import { Download, Check, ChevronRight, Crown, Shirt, Scissors, Footprints, Sparkles, Sword } from 'lucide-react';
+import { Download, Check, ChevronRight, Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Wallet } from 'lucide-react';
 import { ClothingCategory } from '../types';
 import { useStore } from '../store/useStore';
 import { exportShoppingList } from '../utils/export';
@@ -40,6 +40,19 @@ export function ShoppingList() {
   const completedCount = shoppingItems.filter((el) => el.status === 'completed').length;
   const progress = shoppingItems.length > 0 ? (completedCount / shoppingItems.length) * 100 : 0;
 
+  const totalBudget = shoppingItems.reduce((sum, item) => {
+    const budget = item.budget;
+    return sum + (budget ? budget.materialCost + budget.toolCost + budget.outsourcingCost : 0);
+  }, 0);
+
+  const purchasedBudget = shoppingItems.reduce((sum, item) => {
+    const budget = item.budget;
+    if (budget?.purchased) {
+      return sum + budget.materialCost + budget.toolCost + budget.outsourcingCost;
+    }
+    return sum;
+  }, 0);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-primary rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden shadow-2xl animate-scale-in">
@@ -71,6 +84,21 @@ export function ShoppingList() {
               />
             </div>
           </div>
+
+          {totalBudget > 0 && (
+            <div className="mt-3 flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5">
+                <Wallet size={14} className="text-accent" />
+                <span className="text-gray-400">预算:</span>
+                <span className="font-semibold text-white">¥{totalBudget.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Check size={14} className="text-success" />
+                <span className="text-gray-400">已采购:</span>
+                <span className="font-semibold text-success">¥{purchasedBudget.toLocaleString()}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="overflow-y-auto max-h-[50vh] p-6">
@@ -86,44 +114,57 @@ export function ShoppingList() {
                   <span className="text-xs text-gray-500">({items.length})</span>
                 </div>
                 <div className="space-y-2">
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
-                        item.status === 'completed'
-                          ? 'bg-success/10'
-                          : 'bg-white/5 hover:bg-white/10'
-                      }`}
-                    >
+                  {items.map((item) => {
+                    const budget = item.budget;
+                    const itemBudget = budget ? budget.materialCost + budget.toolCost + budget.outsourcingCost : 0;
+                    return (
                       <div
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                          item.status === 'completed'
-                            ? 'border-success bg-success'
-                            : 'border-white/30'
+                        key={item.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
+                          budget?.purchased
+                            ? 'bg-success/10'
+                            : 'bg-white/5 hover:bg-white/10'
                         }`}
                       >
-                        {item.status === 'completed' && (
-                          <Check size={12} className="text-white" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className={`font-medium truncate ${
-                            item.status === 'completed'
-                              ? 'text-gray-500 line-through'
-                              : 'text-white'
+                        <div
+                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                            budget?.purchased
+                              ? 'border-success bg-success'
+                              : 'border-white/30'
                           }`}
                         >
-                          {item.name}
-                        </p>
-                        {item.materials.length > 0 && (
-                          <p className="text-xs text-gray-500 truncate">
-                            {item.materials.join(' / ')}
+                          {budget?.purchased && (
+                            <Check size={12} className="text-white" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p
+                            className={`font-medium truncate ${
+                              budget?.purchased
+                                ? 'text-gray-500 line-through'
+                                : 'text-white'
+                            }`}
+                          >
+                            {item.name}
                           </p>
+                          {item.materials.length > 0 && (
+                            <p className="text-xs text-gray-500 truncate">
+                              {item.materials.join(' / ')}
+                            </p>
+                          )}
+                        </div>
+                        {itemBudget > 0 && (
+                          <div className="text-right flex-shrink-0">
+                            <span className={`font-semibold ${
+                              budget?.purchased ? 'text-success' : 'text-accent'
+                            }`}>
+                              ¥{itemBudget.toLocaleString()}
+                            </span>
+                          </div>
                         )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
