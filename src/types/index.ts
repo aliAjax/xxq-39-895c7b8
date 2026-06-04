@@ -50,6 +50,7 @@ export interface AppState {
   showShoppingList: boolean;
   showReferenceBoard: boolean;
   newElementFromReference: { imageUrl: string; category: ClothingCategory } | null;
+  showCharacterWizard: boolean;
 }
 
 export const REFERENCE_TAG_LABELS: Record<ReferenceTag, string> = {

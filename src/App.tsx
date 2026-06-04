@@ -4,6 +4,7 @@ import { ClothingGrid } from './components/ClothingGrid';
 import { EditorPanel } from './components/EditorPanel';
 import { ShoppingList } from './components/ShoppingList';
 import { ReferenceBoard } from './components/ReferenceBoard';
+import { CharacterCreationWizard } from './components/CharacterCreationWizard';
 import { useStore } from './store/useStore';
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
       </div>
 
       <ShoppingList />
+      <CharacterCreationWizard />
     </div>
   );
 }

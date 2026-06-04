@@ -3,6 +3,8 @@ import { Character, ClothingElement, ClothingCategory, ReferenceImage, Reference
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 import { sampleCharacters } from '../data/sampleData';
 
+const DEFAULT_CATEGORIES: ClothingCategory[] = ['head', 'top', 'bottom', 'shoes', 'accessory', 'weapon'];
+
 interface StoreState {
   characters: Character[];
   activeCharacterId: string | null;
@@ -11,6 +13,7 @@ interface StoreState {
   showShoppingList: boolean;
   showReferenceBoard: boolean;
   newElementFromReference: { imageUrl: string; category: ClothingCategory } | null;
+  showCharacterWizard: boolean;
   
   setActiveCharacter: (id: string | null) => void;
   setSelectedCategory: (category: ClothingCategory | 'all') => void;
@@ -18,8 +21,10 @@ interface StoreState {
   setShowShoppingList: (show: boolean) => void;
   setShowReferenceBoard: (show: boolean) => void;
   setNewElementFromReference: (data: { imageUrl: string; category: ClothingCategory } | null) => void;
+  setShowCharacterWizard: (show: boolean) => void;
   
   addCharacter: () => void;
+  createCharacterWithData: (data: { name: string; source: string; description: string; autoGenerateElements: boolean }) => void;
   updateCharacter: (id: string, updates: Partial<Character>) => void;
   deleteCharacter: (id: string) => void;
   
@@ -55,6 +60,7 @@ export const useStore = create<StoreState>((set, get) => ({
   showShoppingList: false,
   showReferenceBoard: false,
   newElementFromReference: null,
+  showCharacterWizard: false,
 
   setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false }),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
@@ -62,6 +68,7 @@ export const useStore = create<StoreState>((set, get) => ({
   setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false }),
   setShowReferenceBoard: (show) => set({ showReferenceBoard: show, showShoppingList: false }),
   setNewElementFromReference: (data) => set({ newElementFromReference: data }),
+  setShowCharacterWizard: (show) => set({ showCharacterWizard: show }),
 
   addCharacter: () => {
     const newCharacter: Character = {
@@ -80,6 +87,49 @@ export const useStore = create<StoreState>((set, get) => ({
       return {
         characters: newCharacters,
         activeCharacterId: newCharacter.id,
+      };
+    });
+  },
+
+  createCharacterWithData: ({ name, source, description, autoGenerateElements }) => {
+    const now = Date.now();
+    const elements: ClothingElement[] = autoGenerateElements
+      ? DEFAULT_CATEGORIES.map((category, index) => ({
+          id: `el-${now}-${index}`,
+          name: '',
+          category,
+          colors: [],
+          materials: [],
+          difficulty: 'medium',
+          referenceImages: [],
+          notes: '',
+          questions: '',
+          status: 'pending',
+          needToBuy: false,
+          createdAt: now,
+          updatedAt: now,
+        }))
+      : [];
+
+    const newCharacter: Character = {
+      id: `char-${now}`,
+      name: name.trim() || '新角色',
+      source: source.trim(),
+      description: description.trim(),
+      elements,
+      referenceImages: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    set((state) => {
+      const newCharacters = [...state.characters, newCharacter];
+      saveToStorage(newCharacters);
+      return {
+        characters: newCharacters,
+        activeCharacterId: newCharacter.id,
+        showCharacterWizard: false,
+        selectedCategory: 'all',
       };
     });
   },

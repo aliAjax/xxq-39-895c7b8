@@ -6,7 +6,7 @@ export function Sidebar() {
     characters,
     activeCharacterId,
     setActiveCharacter,
-    addCharacter,
+    setShowCharacterWizard,
     deleteCharacter,
   } = useStore();
 
@@ -28,7 +28,7 @@ export function Sidebar() {
 
       <div className="p-4">
         <button
-          onClick={addCharacter}
+          onClick={() => setShowCharacterWizard(true)}
           className="w-full flex items-center justify-center gap-2 bg-accent hover:bg-accent-dark text-white py-3 px-4 rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl"
         >
           <Plus size={20} />

@@ -1,5 +1,5 @@
-import { Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Plus } from 'lucide-react';
-import { ClothingElement, ClothingCategory, STATUS_LABELS, DIFFICULTY_LABELS } from '../types';
+import { Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Plus, Edit3 } from 'lucide-react';
+import { ClothingElement, ClothingCategory, STATUS_LABELS, DIFFICULTY_LABELS, CATEGORY_LABELS } from '../types';
 import { useStore } from '../store/useStore';
 
 const categoryIcons: Record<ClothingCategory, React.ElementType> = {
@@ -34,6 +34,7 @@ export function ElementCard({ element, index }: ElementCardProps) {
   const { selectedElementId, setSelectedElement } = useStore();
   const Icon = categoryIcons[element.category];
   const isSelected = selectedElementId === element.id;
+  const isPlaceholder = !element.name.trim();
 
   return (
     <div
@@ -41,6 +42,8 @@ export function ElementCard({ element, index }: ElementCardProps) {
       className={`group relative bg-white/5 rounded-xl p-5 cursor-pointer transition-all duration-200 animate-scale-in border ${
         isSelected
           ? 'border-accent bg-accent/10 shadow-lg shadow-accent/20'
+          : isPlaceholder
+          ? 'border-dashed border-white/20 hover:border-accent/40 hover:bg-white/10'
           : 'border-transparent hover:bg-white/10 hover:shadow-xl'
       }`}
       style={{ animationDelay: `${index * 50}ms` }}
@@ -56,16 +59,33 @@ export function ElementCard({ element, index }: ElementCardProps) {
       </div>
 
       <div className="flex items-start gap-3 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-accent/30 to-accent/10 flex items-center justify-center">
-          <Icon size={20} className="text-accent" />
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+          isPlaceholder 
+            ? 'bg-white/10' 
+            : 'bg-gradient-to-br from-accent/30 to-accent/10'
+        }`}>
+          <Icon size={20} className={isPlaceholder ? 'text-gray-400' : 'text-accent'} />
         </div>
         <div>
-          <h3 className="font-semibold text-white">{element.name}</h3>
+          <h3 className={`font-semibold ${isPlaceholder ? 'text-gray-400' : 'text-white'}`}>
+            {isPlaceholder ? (
+              <span className="flex items-center gap-1">
+                <Edit3 size={14} />
+                点击填写{CATEGORY_LABELS[element.category]}
+              </span>
+            ) : (
+              element.name
+            )}
+          </h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            难度:{' '}
-            <span className={difficultyColors[element.difficulty]}>
-              {DIFFICULTY_LABELS[element.difficulty]}
-            </span>
+            {isPlaceholder ? '占位元素' : (
+              <>
+                难度:{' '}
+                <span className={difficultyColors[element.difficulty]}>
+                  {DIFFICULTY_LABELS[element.difficulty]}
+                </span>
+              </>
+            )}
           </p>
         </div>
       </div>
