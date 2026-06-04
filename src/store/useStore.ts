@@ -411,11 +411,10 @@ export const useStore = create<StoreState>((set, get) => ({
 
     const existingColors = character.colorPalette?.colors || [];
     const existingColorValues = new Set(existingColors.map((c) => c.color));
-    const preserved = existingColors.filter((c) => allColors.includes(c.color));
 
     const added: PaletteColor[] = [];
-    let primaryCount = preserved.filter((c) => c.category === 'primary').length;
-    let secondaryCount = preserved.filter((c) => c.category === 'secondary').length;
+    let primaryCount = existingColors.filter((c) => c.category === 'primary').length;
+    let secondaryCount = existingColors.filter((c) => c.category === 'secondary').length;
 
     allColors.forEach((color) => {
       if (existingColorValues.has(color)) return;
@@ -433,7 +432,7 @@ export const useStore = create<StoreState>((set, get) => ({
       added.push({
         id: `palette-${now}-${added.length}`,
         color,
-        name: `颜色 ${preserved.length + added.length + 1}`,
+        name: `颜色 ${existingColors.length + added.length + 1}`,
         category,
         createdAt: now,
         updatedAt: now,
@@ -442,7 +441,7 @@ export const useStore = create<StoreState>((set, get) => ({
 
     if (added.length === 0) return;
 
-    const merged = [...preserved, ...added];
+    const merged = [...existingColors, ...added];
     const now = Date.now();
 
     set((state) => {
