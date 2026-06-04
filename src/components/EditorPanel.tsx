@@ -25,7 +25,6 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
     deleteElement,
     characters,
     newElementFromReference,
-    setNewElementFromReference,
   } = useStore();
 
   const character = characters.find((c) => c.id === activeCharacterId);
@@ -83,14 +82,6 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
       }
     }
   }, [element, isNew, newElementFromReference]);
-
-  useEffect(() => {
-    return () => {
-      if (newElementFromReference) {
-        setNewElementFromReference(null);
-      }
-    };
-  }, [newElementFromReference, setNewElementFromReference]);
 
   const handleSave = () => {
     if (!activeCharacterId || !formData.name) return;
