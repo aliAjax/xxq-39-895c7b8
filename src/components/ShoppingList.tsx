@@ -37,7 +37,7 @@ export function ShoppingList() {
     return acc;
   }, {} as Record<ClothingCategory, typeof shoppingItems>);
 
-  const completedCount = shoppingItems.filter((el) => el.status === 'completed').length;
+  const completedCount = shoppingItems.filter((el) => el.budget?.purchased).length;
   const progress = shoppingItems.length > 0 ? (completedCount / shoppingItems.length) * 100 : 0;
 
   const totalBudget = shoppingItems.reduce((sum, item) => {

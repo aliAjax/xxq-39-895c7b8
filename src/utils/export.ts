@@ -40,13 +40,37 @@ export async function exportToImage(elementId: string, filename: string): Promis
 
 export function exportShoppingList(character: Character): void {
   const items = character.elements.filter(el => el.needToBuy);
+  const totalBudget = items.reduce((sum, item) => {
+    const budget = item.budget;
+    return sum + (budget ? budget.materialCost + budget.toolCost + budget.outsourcingCost : 0);
+  }, 0);
+  const purchasedBudget = items.reduce((sum, item) => {
+    const budget = item.budget;
+    if (budget?.purchased) {
+      return sum + budget.materialCost + budget.toolCost + budget.outsourcingCost;
+    }
+    return sum;
+  }, 0);
+
   const lines = [
     `# ${character.name} - 采购清单`,
     `来源: ${character.source}`,
     '',
-    '## 待采购物品:',
+    `## 预算汇总`,
+    `- 总预算: ¥${totalBudget.toLocaleString()}`,
+    `- 已采购: ¥${purchasedBudget.toLocaleString()}`,
+    `- 待采购: ¥${(totalBudget - purchasedBudget).toLocaleString()}`,
     '',
-    ...items.map(item => `- [ ] ${item.name}`),
+    '## 采购明细:',
+    '',
+    ...items.map(item => {
+      const budget = item.budget;
+      const itemBudget = budget ? budget.materialCost + budget.toolCost + budget.outsourcingCost : 0;
+      const purchased = budget?.purchased;
+      const checkbox = purchased ? '[x]' : '[ ]';
+      const budgetStr = itemBudget > 0 ? ` ¥${itemBudget.toLocaleString()}` : '';
+      return `- ${checkbox} ${item.name}${budgetStr}`;
+    }),
     '',
     `生成时间: ${new Date().toLocaleString()}`,
   ];
