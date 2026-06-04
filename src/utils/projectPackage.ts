@@ -1,4 +1,4 @@
-import { Character, Material, ProjectPackage, ImportPreview, ImportConflict } from '../types';
+import { Character, Material, ProjectPackage, ImportPreview, ImportConflict, MaterialImportConflict } from '../types';
 
 const PACKAGE_VERSION = '1.0.0';
 
@@ -49,10 +49,40 @@ export function readProjectPackage(file: File): Promise<ProjectPackage> {
   });
 }
 
+function getMaterialChangedFields(imported: Material, existing: Material): Array<{
+  field: keyof Material;
+  importedValue: unknown;
+  existingValue: unknown;
+}> {
+  const fields: Array<keyof Material> = ['name', 'applicableParts', 'notes', 'needToBuy', 'createdAt', 'updatedAt'];
+  const changed: Array<{
+    field: keyof Material;
+    importedValue: unknown;
+    existingValue: unknown;
+  }> = [];
+
+  for (const field of fields) {
+    const iv = imported[field];
+    const ev = existing[field];
+
+    if (field === 'applicableParts') {
+      const ivArr = iv as string[];
+      const evArr = ev as string[];
+      if (ivArr.length !== evArr.length || !ivArr.every((v) => evArr.includes(v))) {
+        changed.push({ field, importedValue: iv, existingValue: ev });
+      }
+    } else if (iv !== ev) {
+      changed.push({ field, importedValue: iv, existingValue: ev });
+    }
+  }
+
+  return changed;
+}
+
 export function generateImportPreview(
   pkg: ProjectPackage,
   existingCharacters: Character[],
-  _existingMaterials: Material[]
+  existingMaterials: Material[]
 ): ImportPreview {
   const newCharacters: Character[] = [];
   const conflicts: ImportConflict[] = [];
@@ -70,11 +100,32 @@ export function generateImportPreview(
     }
   }
 
+  const newMaterials: Material[] = [];
+  const materialConflicts: MaterialImportConflict[] = [];
+  const existingMaterialNames = new Map(existingMaterials.map((m) => [m.name, m]));
+
+  for (const importedMat of pkg.materials) {
+    const existing = existingMaterialNames.get(importedMat.name);
+    if (existing) {
+      const changedFields = getMaterialChangedFields(importedMat, existing);
+      if (changedFields.length > 0) {
+        materialConflicts.push({
+          importedMaterial: importedMat,
+          existingMaterial: existing,
+          resolution: 'skip',
+          changedFields,
+        });
+      }
+    } else {
+      newMaterials.push(importedMat);
+    }
+  }
+
   return {
     newCharacters,
     conflicts,
-    materialsToImport: pkg.materials,
-    existingMaterialsCount: _existingMaterials.length,
+    newMaterials,
+    materialConflicts,
   };
 }
 
@@ -104,11 +155,19 @@ export function applyImport(
     }
   }
 
-  const existingMaterialNames = new Set(existingMaterials.map((m) => m.name));
-  const newMaterials = preview.materialsToImport.filter(
-    (m) => !existingMaterialNames.has(m.name)
-  );
-  const mergedMaterials = [...existingMaterials, ...newMaterials];
+  let mergedMaterials = [...existingMaterials];
+
+  for (const newMat of preview.newMaterials) {
+    mergedMaterials.push(newMat);
+  }
+
+  for (const matConflict of preview.materialConflicts) {
+    if (matConflict.resolution === 'overwrite') {
+      mergedMaterials = mergedMaterials.map((m) =>
+        m.name === matConflict.importedMaterial.name ? matConflict.importedMaterial : m
+      );
+    }
+  }
 
   return { characters: mergedCharacters, materials: mergedMaterials };
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { X, Upload, AlertTriangle, Plus, ArrowRight, FileQuestion } from 'lucide-react';
-import { ImportPreview, ImportConflict, ConflictResolution } from '../types';
+import { X, Upload, AlertTriangle, Plus, ArrowRight, Package } from 'lucide-react';
+import { ImportPreview, ImportConflict, ConflictResolution, MaterialImportConflict, MaterialConflictResolution } from '../types';
 import { useStore } from '../store/useStore';
 import { useMaterialStore } from '../store/useMaterialStore';
 import { applyImport } from '../utils/projectPackage';
@@ -10,13 +10,45 @@ interface ImportPreviewModalProps {
   onClose: () => void;
 }
 
+const FIELD_LABELS: Record<string, string> = {
+  name: '名称',
+  applicableParts: '适用部位',
+  notes: '备注',
+  needToBuy: '采购标记',
+  createdAt: '创建时间',
+  updatedAt: '更新时间',
+};
+
+function formatValue(field: string, value: unknown): string {
+  if (field === 'needToBuy') {
+    return value ? '需要采购' : '不需要采购';
+  }
+  if (field === 'applicableParts') {
+    return (value as string[]).join(', ') || '无';
+  }
+  if (field === 'createdAt' || field === 'updatedAt') {
+    return new Date(value as number).toLocaleString();
+  }
+  if (value === null || value === undefined) {
+    return '无';
+  }
+  return String(value);
+}
+
 export function ImportPreviewModal({ preview, onClose }: ImportPreviewModalProps) {
   const { replaceCharacters } = useStore();
   const { replaceMaterials } = useMaterialStore();
   const [conflicts, setConflicts] = useState<ImportConflict[]>(preview.conflicts);
+  const [materialConflicts, setMaterialConflicts] = useState<MaterialImportConflict[]>(preview.materialConflicts);
 
   const updateConflictResolution = (index: number, resolution: ConflictResolution) => {
     setConflicts((prev) =>
+      prev.map((c, i) => (i === index ? { ...c, resolution } : c))
+    );
+  };
+
+  const updateMaterialConflictResolution = (index: number, resolution: MaterialConflictResolution) => {
+    setMaterialConflicts((prev) =>
       prev.map((c, i) => (i === index ? { ...c, resolution } : c))
     );
   };
@@ -25,6 +57,7 @@ export function ImportPreviewModal({ preview, onClose }: ImportPreviewModalProps
     const updatedPreview: ImportPreview = {
       ...preview,
       conflicts,
+      materialConflicts,
     };
     const { characters, materials } = applyImport(
       updatedPreview,
@@ -36,7 +69,19 @@ export function ImportPreviewModal({ preview, onClose }: ImportPreviewModalProps
     onClose();
   };
 
-  const totalToImport = preview.newCharacters.length + conflicts.filter((c) => c.resolution !== 'skip').length;
+  const totalCharactersToImport =
+    preview.newCharacters.length +
+    conflicts.filter((c) => c.resolution !== 'skip').length;
+  const totalMaterialsToImport =
+    preview.newMaterials.length +
+    materialConflicts.filter((c) => c.resolution !== 'skip').length;
+  const hasAnythingToImport = totalCharactersToImport > 0 || totalMaterialsToImport > 0;
+
+  const showNoData =
+    preview.newCharacters.length === 0 &&
+    conflicts.length === 0 &&
+    preview.newMaterials.length === 0 &&
+    materialConflicts.length === 0;
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
@@ -166,20 +211,18 @@ export function ImportPreviewModal({ preview, onClose }: ImportPreviewModalProps
             </div>
           )}
 
-          {preview.materialsToImport.length > 0 && (
+          {preview.newMaterials.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-blue-400 flex items-center gap-2 mb-3">
-                <FileQuestion size={16} />
-                材质数据 ({preview.materialsToImport.length} 条导入,
-                当前已有 {preview.existingMaterialsCount} 条,
-                同名材质将自动跳过)
+                <Package size={16} />
+                新增材质 ({preview.newMaterials.length})
               </h3>
               <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
                 <div className="flex flex-wrap gap-1.5">
-                  {preview.materialsToImport.map((mat) => (
+                  {preview.newMaterials.map((mat) => (
                     <span
                       key={mat.id}
-                      className="text-xs px-2.5 py-1 bg-white/10 text-gray-300 rounded-lg"
+                      className="text-xs px-2.5 py-1 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-lg"
                     >
                       {mat.name}
                     </span>
@@ -189,7 +232,76 @@ export function ImportPreviewModal({ preview, onClose }: ImportPreviewModalProps
             </div>
           )}
 
-          {preview.newCharacters.length === 0 && conflicts.length === 0 && preview.materialsToImport.length === 0 && (
+          {materialConflicts.length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium text-orange-400 flex items-center gap-2 mb-3">
+                <AlertTriangle size={16} />
+                冲突材质 ({materialConflicts.length})
+              </h3>
+              <div className="space-y-3">
+                {materialConflicts.map((matConflict, index) => (
+                  <div
+                    key={matConflict.importedMaterial.id}
+                    className="bg-orange-500/5 border border-orange-500/20 rounded-xl p-4"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <span className="text-white font-medium">
+                          {matConflict.importedMaterial.name}
+                        </span>
+                        <span className="text-xs text-gray-400 ml-2">
+                          有 {matConflict.changedFields.length} 处字段变更
+                        </span>
+                      </div>
+                    </div>
+                    <div className="bg-white/5 rounded-lg p-3 mb-3 space-y-2">
+                      {matConflict.changedFields.map((change, i) => (
+                        <div key={i} className="flex items-start gap-2">
+                          <span className="text-xs text-gray-500 flex-shrink-0 w-16">
+                            {FIELD_LABELS[change.field] || change.field}
+                          </span>
+                          <ArrowRight size={12} className="text-gray-600 flex-shrink-0 mt-1" />
+                          <span className="text-xs text-gray-400 flex-1 min-w-0">
+                            <span className={change.field === 'needToBuy' && !change.existingValue ? 'text-red-400' : ''}>
+                              {formatValue(change.field, change.existingValue)}
+                            </span>
+                            <span className="text-gray-600 mx-1">→</span>
+                            <span className={change.field === 'needToBuy' && change.importedValue ? 'text-green-400' : 'text-accent'}>
+                              {formatValue(change.field, change.importedValue)}
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => updateMaterialConflictResolution(index, 'overwrite')}
+                        className={`flex-1 text-xs py-2 px-3 rounded-lg font-medium transition-all ${
+                          matConflict.resolution === 'overwrite'
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/50'
+                            : 'bg-white/5 text-gray-400 border border-transparent hover:bg-white/10'
+                        }`}
+                      >
+                        覆盖现有
+                      </button>
+                      <button
+                        onClick={() => updateMaterialConflictResolution(index, 'skip')}
+                        className={`flex-1 text-xs py-2 px-3 rounded-lg font-medium transition-all ${
+                          matConflict.resolution === 'skip'
+                            ? 'bg-gray-500/20 text-gray-300 border border-gray-500/50'
+                            : 'bg-white/5 text-gray-400 border border-transparent hover:bg-white/10'
+                        }`}
+                      >
+                        跳过
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {showNoData && (
             <div className="text-center py-8 text-gray-500">
               <p className="text-sm">项目包中没有可导入的数据</p>
             </div>
@@ -199,10 +311,16 @@ export function ImportPreviewModal({ preview, onClose }: ImportPreviewModalProps
         <div className="p-6 border-t border-white/10 flex-shrink-0">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-400">
-              将导入 <span className="text-white font-medium">{totalToImport}</span> 个角色
-              {preview.materialsToImport.length > 0 && (
+              将导入{' '}
+              <span className="text-white font-medium">{totalCharactersToImport}</span>{' '}
+              个角色
+              {totalMaterialsToImport > 0 && (
                 <>
-                  {' '}和 <span className="text-white font-medium">{preview.materialsToImport.length}</span> 条材质
+                  {' '}和{' '}
+                  <span className="text-white font-medium">
+                    {totalMaterialsToImport}
+                  </span>{' '}
+                  条材质
                 </>
               )}
             </p>
@@ -215,7 +333,7 @@ export function ImportPreviewModal({ preview, onClose }: ImportPreviewModalProps
               </button>
               <button
                 onClick={handleConfirmImport}
-                disabled={totalToImport === 0 && preview.materialsToImport.length === 0}
+                disabled={!hasAnythingToImport}
                 className="py-2.5 px-5 bg-accent hover:bg-accent-dark disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors shadow-lg"
               >
                 确认导入

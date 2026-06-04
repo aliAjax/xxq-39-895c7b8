@@ -187,15 +187,28 @@ export interface ProjectPackage {
 
 export type ConflictResolution = 'overwrite' | 'skip' | 'saveAsNew';
 
+export type MaterialConflictResolution = 'overwrite' | 'skip';
+
 export interface ImportConflict {
   importedCharacter: Character;
   existingCharacter: Character;
   resolution: ConflictResolution;
 }
 
+export interface MaterialImportConflict {
+  importedMaterial: Material;
+  existingMaterial: Material;
+  resolution: MaterialConflictResolution;
+  changedFields: Array<{
+    field: keyof Material;
+    importedValue: unknown;
+    existingValue: unknown;
+  }>;
+}
+
 export interface ImportPreview {
   newCharacters: Character[];
   conflicts: ImportConflict[];
-  materialsToImport: Material[];
-  existingMaterialsCount: number;
+  newMaterials: Material[];
+  materialConflicts: MaterialImportConflict[];
 }
