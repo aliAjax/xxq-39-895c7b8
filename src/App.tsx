@@ -6,11 +6,12 @@ import { ShoppingList } from './components/ShoppingList';
 import { ReferenceBoard } from './components/ReferenceBoard';
 import { CharacterCreationWizard } from './components/CharacterCreationWizard';
 import { MaterialLibrary } from './components/MaterialLibrary';
+import { ColorPalette } from './components/ColorPalette';
 import { useStore } from './store/useStore';
 import { useMaterialStore } from './store/useMaterialStore';
 
 function App() {
-  const { selectedElementId, showReferenceBoard, showShoppingList } = useStore();
+  const { selectedElementId, showReferenceBoard, showShoppingList, showColorPalette } = useStore();
   const { showMaterialLibrary } = useMaterialStore();
   const isAddingNew = selectedElementId === 'new';
   const showEditor = selectedElementId !== null;
@@ -35,6 +36,7 @@ function App() {
       </div>
 
       {!showMaterialLibrary && showShoppingList && <ShoppingList />}
+      {!showMaterialLibrary && showColorPalette && <ColorPalette />}
       <CharacterCreationWizard />
     </div>
   );

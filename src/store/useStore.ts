@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag } from '../types';
+import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor } from '../types';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 import { sampleCharacters } from '../data/sampleData';
 
@@ -12,6 +12,7 @@ interface StoreState {
   selectedElementId: string | null;
   showShoppingList: boolean;
   showReferenceBoard: boolean;
+  showColorPalette: boolean;
   newElementFromReference: { imageUrl: string; category: ClothingCategory } | null;
   showCharacterWizard: boolean;
   
@@ -20,6 +21,7 @@ interface StoreState {
   setSelectedElement: (id: string | null) => void;
   setShowShoppingList: (show: boolean) => void;
   setShowReferenceBoard: (show: boolean) => void;
+  setShowColorPalette: (show: boolean) => void;
   setNewElementFromReference: (data: { imageUrl: string; category: ClothingCategory } | null) => void;
   setShowCharacterWizard: (show: boolean) => void;
   
@@ -37,6 +39,12 @@ interface StoreState {
   deleteReferenceImage: (characterId: string, imageId: string) => void;
   toggleReferenceTag: (characterId: string, imageId: string, tag: ReferenceTag) => void;
   createElementFromReference: (characterId: string, imageId: string, category: ClothingCategory) => void;
+  
+  addPaletteColor: (characterId: string, color: Omit<PaletteColor, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updatePaletteColor: (characterId: string, colorId: string, updates: Partial<PaletteColor>) => void;
+  deletePaletteColor: (characterId: string, colorId: string) => void;
+  autoGeneratePalette: (characterId: string) => void;
+  getElementsUsingColor: (characterId: string, color: string) => ClothingElement[];
   
   getActiveCharacter: () => Character | undefined;
   getFilteredElements: () => ClothingElement[];
@@ -59,27 +67,35 @@ export const useStore = create<StoreState>((set, get) => ({
   selectedElementId: null,
   showShoppingList: false,
   showReferenceBoard: false,
+  showColorPalette: false,
   newElementFromReference: null,
   showCharacterWizard: false,
 
-  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false }),
+  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false }),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
   setSelectedElement: (id) => set({ selectedElementId: id, newElementFromReference: null }),
-  setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false }),
-  setShowReferenceBoard: (show) => set({ showReferenceBoard: show, showShoppingList: false }),
+  setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false, showColorPalette: false }),
+  setShowReferenceBoard: (show) => set({ showReferenceBoard: show, showShoppingList: false, showColorPalette: false }),
+  setShowColorPalette: (show) => set({ showColorPalette: show, showShoppingList: false, showReferenceBoard: false }),
   setNewElementFromReference: (data) => set({ newElementFromReference: data }),
   setShowCharacterWizard: (show) => set({ showCharacterWizard: show }),
 
   addCharacter: () => {
+    const now = Date.now();
     const newCharacter: Character = {
-      id: `char-${Date.now()}`,
+      id: `char-${now}`,
       name: '新角色',
       source: '',
       description: '',
       elements: [],
       referenceImages: [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      colorPalette: {
+        colors: [],
+        createdAt: now,
+        updatedAt: now,
+      },
+      createdAt: now,
+      updatedAt: now,
     };
     set((state) => {
       const newCharacters = [...state.characters, newCharacter];
@@ -118,6 +134,11 @@ export const useStore = create<StoreState>((set, get) => ({
       description: description.trim(),
       elements,
       referenceImages: [],
+      colorPalette: {
+        colors: [],
+        createdAt: now,
+        updatedAt: now,
+      },
       createdAt: now,
       updatedAt: now,
     };
@@ -299,6 +320,129 @@ export const useStore = create<StoreState>((set, get) => ({
       selectedElementId: 'new',
       showReferenceBoard: false,
     });
+  },
+
+  addPaletteColor: (characterId, color) => {
+    const now = Date.now();
+    const newColor: PaletteColor = {
+      ...color,
+      id: `palette-${now}`,
+      createdAt: now,
+      updatedAt: now,
+    };
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              colorPalette: {
+                ...char.colorPalette,
+                colors: [...char.colorPalette.colors, newColor],
+                updatedAt: now,
+              },
+              updatedAt: now,
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  updatePaletteColor: (characterId, colorId, updates) => {
+    const now = Date.now();
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              colorPalette: {
+                ...char.colorPalette,
+                colors: char.colorPalette.colors.map((c) =>
+                  c.id === colorId ? { ...c, ...updates, updatedAt: now } : c
+                ),
+                updatedAt: now,
+              },
+              updatedAt: now,
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  deletePaletteColor: (characterId, colorId) => {
+    const now = Date.now();
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              colorPalette: {
+                ...char.colorPalette,
+                colors: char.colorPalette.colors.filter((c) => c.id !== colorId),
+                updatedAt: now,
+              },
+              updatedAt: now,
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  autoGeneratePalette: (characterId) => {
+    const state = get();
+    const character = state.characters.find((c) => c.id === characterId);
+    if (!character) return;
+
+    const allColors: string[] = [];
+    character.elements.forEach((el) => {
+      el.colors.forEach((color) => {
+        if (!allColors.includes(color)) {
+          allColors.push(color);
+        }
+      });
+    });
+
+    if (allColors.length === 0) return;
+
+    const now = Date.now();
+    const newColors: PaletteColor[] = allColors.map((color, index) => ({
+      id: `palette-${now}-${index}`,
+      color,
+      name: `颜色 ${index + 1}`,
+      category: index === 0 ? 'primary' : index < 3 ? 'secondary' : 'accent',
+      createdAt: now,
+      updatedAt: now,
+    }));
+
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              colorPalette: {
+                colors: newColors,
+                createdAt: char.colorPalette?.createdAt || now,
+                updatedAt: now,
+              },
+              updatedAt: now,
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  getElementsUsingColor: (characterId, color) => {
+    const state = get();
+    const character = state.characters.find((c) => c.id === characterId);
+    if (!character) return [];
+    return character.elements.filter((el) => el.colors.includes(color));
   },
 
   getActiveCharacter: () => {

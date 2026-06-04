@@ -1,4 +1,4 @@
-import { Image, FileJson, ShoppingCart, ImageIcon } from 'lucide-react';
+import { Image, FileJson, ShoppingCart, ImageIcon, Palette } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { exportToJSON, exportToImage } from '../utils/export';
 
@@ -12,6 +12,8 @@ export function Header() {
     showShoppingList,
     setShowReferenceBoard,
     showReferenceBoard,
+    setShowColorPalette,
+    showColorPalette,
   } = useStore();
 
   const character = characters.find((c) => c.id === activeCharacterId);
@@ -116,6 +118,17 @@ export function Header() {
             >
               <ImageIcon size={18} />
               参考图
+            </button>
+            <button
+              onClick={() => setShowColorPalette(!showColorPalette)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${
+                showColorPalette
+                  ? 'bg-accent text-white'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
+            >
+              <Palette size={18} />
+              色板
             </button>
             <button
               onClick={() => setShowShoppingList(!showShoppingList)}

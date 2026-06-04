@@ -3,9 +3,15 @@ import { Character } from '../types';
 const STORAGE_KEY = 'cosplay-costume-analyzer-data';
 
 function migrateData(characters: Character[]): Character[] {
+  const now = Date.now();
   return characters.map((char) => ({
     ...char,
     referenceImages: char.referenceImages || [],
+    colorPalette: char.colorPalette || {
+      colors: [],
+      createdAt: now,
+      updatedAt: now,
+    },
     elements: char.elements.map((el) => ({
       ...el,
       referenceImages: el.referenceImages || [],

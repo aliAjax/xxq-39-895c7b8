@@ -38,6 +38,7 @@ export interface Character {
   description: string;
   elements: ClothingElement[];
   referenceImages: ReferenceImage[];
+  colorPalette: ColorPalette;
   createdAt: number;
   updatedAt: number;
 }
@@ -49,6 +50,7 @@ export interface AppState {
   selectedElementId: string | null;
   showShoppingList: boolean;
   showReferenceBoard: boolean;
+  showColorPalette: boolean;
   newElementFromReference: { imageUrl: string; category: ClothingCategory } | null;
   showCharacterWizard: boolean;
 }
@@ -104,3 +106,26 @@ export interface Material {
   createdAt: number;
   updatedAt: number;
 }
+
+export type ColorCategory = 'primary' | 'secondary' | 'accent';
+
+export interface PaletteColor {
+  id: string;
+  color: string;
+  name: string;
+  category: ColorCategory;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ColorPalette {
+  colors: PaletteColor[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export const COLOR_CATEGORY_LABELS: Record<ColorCategory, string> = {
+  primary: '主色',
+  secondary: '辅色',
+  accent: '点缀色',
+};
