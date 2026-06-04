@@ -409,15 +409,41 @@ export const useStore = create<StoreState>((set, get) => ({
 
     if (allColors.length === 0) return;
 
+    const existingColors = character.colorPalette?.colors || [];
+    const existingColorValues = new Set(existingColors.map((c) => c.color));
+    const preserved = existingColors.filter((c) => allColors.includes(c.color));
+
+    const added: PaletteColor[] = [];
+    let primaryCount = preserved.filter((c) => c.category === 'primary').length;
+    let secondaryCount = preserved.filter((c) => c.category === 'secondary').length;
+
+    allColors.forEach((color) => {
+      if (existingColorValues.has(color)) return;
+      const now = Date.now();
+      let category: 'primary' | 'secondary' | 'accent';
+      if (primaryCount === 0) {
+        category = 'primary';
+        primaryCount++;
+      } else if (secondaryCount < 2) {
+        category = 'secondary';
+        secondaryCount++;
+      } else {
+        category = 'accent';
+      }
+      added.push({
+        id: `palette-${now}-${added.length}`,
+        color,
+        name: `颜色 ${preserved.length + added.length + 1}`,
+        category,
+        createdAt: now,
+        updatedAt: now,
+      });
+    });
+
+    if (added.length === 0) return;
+
+    const merged = [...preserved, ...added];
     const now = Date.now();
-    const newColors: PaletteColor[] = allColors.map((color, index) => ({
-      id: `palette-${now}-${index}`,
-      color,
-      name: `颜色 ${index + 1}`,
-      category: index === 0 ? 'primary' : index < 3 ? 'secondary' : 'accent',
-      createdAt: now,
-      updatedAt: now,
-    }));
 
     set((state) => {
       const newCharacters = state.characters.map((char) =>
@@ -425,7 +451,7 @@ export const useStore = create<StoreState>((set, get) => ({
           ? {
               ...char,
               colorPalette: {
-                colors: newColors,
+                colors: merged,
                 createdAt: char.colorPalette?.createdAt || now,
                 updatedAt: now,
               },

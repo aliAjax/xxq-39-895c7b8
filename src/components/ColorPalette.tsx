@@ -59,10 +59,10 @@ export function ColorPalette() {
     setEditingColor(null);
   };
 
-  const handleDeleteColor = (colorId: string) => {
+  const handleDeleteColor = (colorId: string, colorValue: string) => {
     if (!activeCharacterId || !confirm('确定要删除这个颜色吗？')) return;
     deletePaletteColor(activeCharacterId, colorId);
-    if (selectedColor === colorId) {
+    if (selectedColor === colorValue) {
       setSelectedColor(null);
     }
   };
@@ -232,7 +232,7 @@ export function ColorPalette() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteColor(color.id);
+                            handleDeleteColor(color.id, color.color);
                           }}
                           className="p-1.5 hover:bg-red-500/20 rounded transition-colors"
                         >
