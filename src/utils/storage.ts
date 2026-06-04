@@ -15,6 +15,7 @@ function migrateData(characters: Character[]): Character[] {
     elements: char.elements.map((el) => ({
       ...el,
       referenceImages: el.referenceImages || [],
+      tasks: el.tasks || [],
     })),
   }));
 }

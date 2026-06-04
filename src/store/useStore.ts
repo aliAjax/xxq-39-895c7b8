@@ -634,9 +634,10 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   getTaskProgress: (element) => {
-    if (!element.tasks || element.tasks.length === 0) return 0;
-    const completed = element.tasks.filter((t) => t.completed).length;
-    return Math.round((completed / element.tasks.length) * 100);
+    const tasks = element.tasks || [];
+    if (tasks.length === 0) return 0;
+    const completed = tasks.filter((t) => t.completed).length;
+    return Math.round((completed / tasks.length) * 100);
   },
 
   getFilteredReferenceImages: (tagFilter) => {
