@@ -1,23 +1,16 @@
-import { useState } from 'react';
 import { CategoryFilter } from './CategoryFilter';
 import { ElementCard, AddElementCard } from './ElementCard';
 import { useStore } from '../store/useStore';
 
 export function ClothingGrid() {
-  const { getFilteredElements, getActiveCharacter, setSelectedElement, selectedElementId } =
+  const { getFilteredElements, getActiveCharacter, setSelectedElement } =
     useStore();
-  const [isAddingNew, setIsAddingNew] = useState(false);
 
   const character = getActiveCharacter();
   const elements = getFilteredElements();
 
   const handleAddNew = () => {
-    setIsAddingNew(true);
     setSelectedElement('new');
-  };
-
-  const handleCloseEditor = () => {
-    setIsAddingNew(false);
   };
 
   if (!character) {

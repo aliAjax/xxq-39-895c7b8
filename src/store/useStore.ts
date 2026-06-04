@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Character, ClothingElement, ClothingCategory, ProductionStatus } from '../types';
+import { Character, ClothingElement, ClothingCategory } from '../types';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 import { sampleCharacters } from '../data/sampleData';
 

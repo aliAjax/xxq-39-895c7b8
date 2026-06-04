@@ -1,4 +1,4 @@
-import { Download, Image, FileJson, ShoppingCart } from 'lucide-react';
+import { Image, FileJson, ShoppingCart } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { exportToJSON, exportToImage } from '../utils/export';
 

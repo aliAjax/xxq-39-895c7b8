@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Plus, Image as ImageIcon, Link } from 'lucide-react';
+import { X, Trash2, Plus, Link } from 'lucide-react';
 import {
   ClothingElement,
   ClothingCategory,
