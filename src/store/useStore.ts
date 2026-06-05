@@ -23,6 +23,7 @@ interface StoreState {
   showColorPalette: boolean;
   showBudgetPanel: boolean;
   showPrintSpecification: boolean;
+  showScheduleCalendar: boolean;
   newElementFromReference: { imageUrl: string; category: ClothingCategory } | null;
   showCharacterWizard: boolean;
   
@@ -34,6 +35,7 @@ interface StoreState {
   setShowColorPalette: (show: boolean) => void;
   setShowBudgetPanel: (show: boolean) => void;
   setShowPrintSpecification: (show: boolean) => void;
+  setShowScheduleCalendar: (show: boolean) => void;
   setNewElementFromReference: (data: { imageUrl: string; category: ClothingCategory } | null) => void;
   setShowCharacterWizard: (show: boolean) => void;
   
@@ -94,17 +96,19 @@ export const useStore = create<StoreState>((set, get) => ({
   showColorPalette: false,
   showBudgetPanel: false,
   showPrintSpecification: false,
+  showScheduleCalendar: false,
   newElementFromReference: null,
   showCharacterWizard: false,
 
-  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false }),
+  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false }),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
   setSelectedElement: (id) => set({ selectedElementId: id, newElementFromReference: null }),
-  setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false }),
-  setShowReferenceBoard: (show) => set({ showReferenceBoard: show, showShoppingList: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false }),
-  setShowColorPalette: (show) => set({ showColorPalette: show, showShoppingList: false, showReferenceBoard: false, showBudgetPanel: false, showPrintSpecification: false }),
-  setShowBudgetPanel: (show) => set({ showBudgetPanel: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showPrintSpecification: false }),
-  setShowPrintSpecification: (show) => set({ showPrintSpecification: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false }),
+  setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false }),
+  setShowReferenceBoard: (show) => set({ showReferenceBoard: show, showShoppingList: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false }),
+  setShowColorPalette: (show) => set({ showColorPalette: show, showShoppingList: false, showReferenceBoard: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false }),
+  setShowBudgetPanel: (show) => set({ showBudgetPanel: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showPrintSpecification: false, showScheduleCalendar: false }),
+  setShowPrintSpecification: (show) => set({ showPrintSpecification: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showScheduleCalendar: false }),
+  setShowScheduleCalendar: (show) => set({ showScheduleCalendar: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false }),
   setNewElementFromReference: (data) => set({ newElementFromReference: data }),
   setShowCharacterWizard: (show) => set({ showCharacterWizard: show }),
 

@@ -1,4 +1,4 @@
-import { Image, FileJson, ShoppingCart, ImageIcon, Palette, Wallet, Printer } from 'lucide-react';
+import { Image, FileJson, ShoppingCart, ImageIcon, Palette, Wallet, Printer, Calendar } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { exportToJSON, exportToImage } from '../utils/export';
 
@@ -18,6 +18,8 @@ export function Header() {
     showBudgetPanel,
     setShowPrintSpecification,
     showPrintSpecification,
+    setShowScheduleCalendar,
+    showScheduleCalendar,
   } = useStore();
 
   const character = characters.find((c) => c.id === activeCharacterId);
@@ -155,6 +157,17 @@ export function Header() {
             >
               <Wallet size={18} />
               预算管理
+            </button>
+            <button
+              onClick={() => setShowScheduleCalendar(!showScheduleCalendar)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${
+                showScheduleCalendar
+                  ? 'bg-accent text-white'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
+            >
+              <Calendar size={18} />
+              排期日历
             </button>
             <button
               onClick={() => setShowPrintSpecification(!showPrintSpecification)}

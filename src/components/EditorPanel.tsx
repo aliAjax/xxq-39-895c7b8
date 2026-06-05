@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Plus, Link, Image, Package, Wallet } from 'lucide-react';
+import { X, Trash2, Plus, Link, Image, Package, Wallet, Calendar, Bell } from 'lucide-react';
 import {
   ClothingElement,
   ClothingCategory,
@@ -57,6 +57,9 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
     questions: '',
     status: 'pending',
     needToBuy: false,
+    scheduleStartDate: undefined,
+    scheduleDueDate: undefined,
+    scheduleReminder: '',
   });
 
   const [budgetData, setBudgetData] = useState<BudgetItem>(DEFAULT_BUDGET);
@@ -95,6 +98,9 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
           questions: '',
           status: 'pending',
           needToBuy: false,
+          scheduleStartDate: undefined,
+          scheduleDueDate: undefined,
+          scheduleReminder: '',
         });
       }
       setBudgetData(DEFAULT_BUDGET);
@@ -512,6 +518,61 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
                 className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-accent/50 resize-none text-sm"
                 rows={2}
                 placeholder="采购渠道、比价信息等..."
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-white/10">
+          <div className="flex items-center gap-2 mb-4">
+            <Calendar size={16} className="text-accent" />
+            <h3 className="font-semibold text-white">排期设置</h3>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm text-gray-400 mb-1.5">计划开始日期</label>
+              <input
+                type="date"
+                value={formData.scheduleStartDate ? new Date(formData.scheduleStartDate).toISOString().split('T')[0] : ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({
+                    ...formData,
+                    scheduleStartDate: value ? new Date(value).getTime() : undefined,
+                  });
+                }}
+                className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-accent/50 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1.5">截止日期</label>
+              <input
+                type="date"
+                value={formData.scheduleDueDate ? new Date(formData.scheduleDueDate).toISOString().split('T')[0] : ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({
+                    ...formData,
+                    scheduleDueDate: value ? new Date(value).getTime() : undefined,
+                  });
+                }}
+                className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-accent/50 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-400 mb-1.5 flex items-center gap-1">
+                <Bell size={12} />
+                提醒备注
+              </label>
+              <textarea
+                value={formData.scheduleReminder || ''}
+                onChange={(e) => setFormData({ ...formData, scheduleReminder: e.target.value })}
+                className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-accent/50 resize-none text-sm"
+                rows={2}
+                placeholder="设置提醒事项..."
               />
             </div>
           </div>

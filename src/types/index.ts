@@ -63,6 +63,9 @@ export interface ClothingElement {
   needToBuy: boolean;
   tasks: ProductionTask[];
   budget?: BudgetItem;
+  scheduleStartDate?: number;
+  scheduleDueDate?: number;
+  scheduleReminder?: string;
   createdAt: number;
   updatedAt: number;
 }
