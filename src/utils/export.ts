@@ -15,13 +15,13 @@ export function exportToJSON(character: Character): void {
   URL.revokeObjectURL(url);
 }
 
-export async function exportToImage(elementId: string, filename: string): Promise<void> {
+export async function exportToImage(elementId: string, filename: string, backgroundColor: string = '#1a1a2e'): Promise<void> {
   const element = document.getElementById(elementId);
   if (!element) return;
 
   try {
     const canvas = await html2canvas(element, {
-      backgroundColor: '#1a1a2e',
+      backgroundColor,
       scale: 2,
       useCORS: true,
     });
@@ -36,6 +36,10 @@ export async function exportToImage(elementId: string, filename: string): Promis
   } catch (error) {
     console.error('Failed to export image:', error);
   }
+}
+
+export async function exportPrintSpecification(character: Character): Promise<void> {
+  await exportToImage('print-spec-content', `${character.name}-制作说明书`, '#0f0f1a');
 }
 
 export function exportShoppingList(character: Character): void {

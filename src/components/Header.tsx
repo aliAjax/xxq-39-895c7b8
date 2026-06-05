@@ -1,4 +1,4 @@
-import { Image, FileJson, ShoppingCart, ImageIcon, Palette, Wallet } from 'lucide-react';
+import { Image, FileJson, ShoppingCart, ImageIcon, Palette, Wallet, Printer } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { exportToJSON, exportToImage } from '../utils/export';
 
@@ -16,6 +16,8 @@ export function Header() {
     showColorPalette,
     setShowBudgetPanel,
     showBudgetPanel,
+    setShowPrintSpecification,
+    showPrintSpecification,
   } = useStore();
 
   const character = characters.find((c) => c.id === activeCharacterId);
@@ -153,6 +155,17 @@ export function Header() {
             >
               <Wallet size={18} />
               预算管理
+            </button>
+            <button
+              onClick={() => setShowPrintSpecification(!showPrintSpecification)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${
+                showPrintSpecification
+                  ? 'bg-accent text-white'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
+            >
+              <Printer size={18} />
+              制作说明书
             </button>
             <button
               onClick={() => exportToJSON(character)}
