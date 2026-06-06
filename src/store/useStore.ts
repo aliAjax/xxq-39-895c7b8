@@ -32,6 +32,7 @@ interface StoreState {
   settings: AppSettings;
   savedViews: SavedView[];
   showExportCenter: boolean;
+  showMaterialSummary: boolean;
 
   setActiveCharacter: (id: string | null) => void;
   setSelectedCategory: (category: ClothingCategory | 'all') => void;
@@ -47,6 +48,7 @@ interface StoreState {
   setShowCharacterWizard: (show: boolean) => void;
   setShowSettings: (show: boolean) => void;
   setShowExportCenter: (show: boolean) => void;
+  setShowMaterialSummary: (show: boolean) => void;
 
   updateTaskTemplates: (templates: TaskTemplate[]) => void;
   resetTaskTemplates: () => void;
@@ -93,6 +95,7 @@ interface StoreState {
   replaceCharacters: (characters: Character[]) => void;
   getCharacterStats: (characterId: string) => CharacterStats | null;
   getAllSources: () => string[];
+  bulkMarkElementsPurchased: (items: Array<{ characterId: string; elementId: string }>, purchased: boolean) => void;
 
   addSavedView: (name: string, filters: OverviewFilters) => void;
   deleteSavedView: (viewId: string) => void;
@@ -125,8 +128,9 @@ export const useStore = create<StoreState>((set, get) => ({
   settings: loadSettings(),
   savedViews: loadViews(),
   showExportCenter: false,
+  showMaterialSummary: false,
 
-  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false, showProjectOverview: false }),
+  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false, showProjectOverview: false, showMaterialSummary: false }),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
   setSelectedElement: (id) => set({ selectedElementId: id, newElementFromReference: null, showSettings: false }),
   setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false }),
@@ -135,11 +139,12 @@ export const useStore = create<StoreState>((set, get) => ({
   setShowBudgetPanel: (show) => set({ showBudgetPanel: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false }),
   setShowPrintSpecification: (show) => set({ showPrintSpecification: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showScheduleCalendar: false, showSettings: false }),
   setShowScheduleCalendar: (show) => set({ showScheduleCalendar: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showSettings: false }),
-  setShowProjectOverview: (show) => set({ showProjectOverview: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false, selectedElementId: null }),
+  setShowProjectOverview: (show) => set({ showProjectOverview: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false, showMaterialSummary: false, selectedElementId: null }),
   setNewElementFromReference: (data) => set({ newElementFromReference: data }),
   setShowCharacterWizard: (show) => set({ showCharacterWizard: show }),
-  setShowSettings: (show) => set({ showSettings: show, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showProjectOverview: false }),
+  setShowSettings: (show) => set({ showSettings: show, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showProjectOverview: false, showMaterialSummary: false }),
   setShowExportCenter: (show) => set({ showExportCenter: show }),
+  setShowMaterialSummary: (show) => set({ showMaterialSummary: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false, showProjectOverview: false, selectedElementId: null }),
 
   updateTaskTemplates: (templates) => {
     set((state) => {
@@ -858,6 +863,50 @@ export const useStore = create<StoreState>((set, get) => ({
       }
     });
     return Array.from(sources);
+  },
+
+  bulkMarkElementsPurchased: (items, purchased) => {
+    const now = Date.now();
+    const itemMap = new Map<string, Set<string>>();
+    items.forEach(({ characterId, elementId }) => {
+      if (!itemMap.has(characterId)) {
+        itemMap.set(characterId, new Set());
+      }
+      itemMap.get(characterId)!.add(elementId);
+    });
+
+    set((state) => {
+      const newCharacters = state.characters.map((char) => {
+        const elementIds = itemMap.get(char.id);
+        if (!elementIds) return char;
+
+        let hasChanges = false;
+        const newElements = char.elements.map((el) => {
+          if (!elementIds.has(el.id)) return el;
+
+          const currentBudget = el.budget || DEFAULT_BUDGET;
+          if (currentBudget.purchased === purchased) return el;
+
+          hasChanges = true;
+          return {
+            ...el,
+            budget: { ...currentBudget, purchased },
+            updatedAt: now,
+          };
+        });
+
+        if (!hasChanges) return char;
+
+        return {
+          ...char,
+          elements: newElements,
+          updatedAt: now,
+        };
+      });
+
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
   },
 
   addSavedView: (name, filters) => {

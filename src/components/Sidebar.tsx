@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus, Trash2, Package, Download, Upload, LayoutGrid, Settings } from 'lucide-react';
+import { Plus, Trash2, Package, Download, Upload, LayoutGrid, Settings, Layers } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useMaterialStore } from '../store/useMaterialStore';
 import { useToastStore } from '../store/useToastStore';
@@ -18,6 +18,8 @@ export function Sidebar() {
     setShowProjectOverview,
     showSettings,
     setShowSettings,
+    showMaterialSummary,
+    setShowMaterialSummary,
   } = useStore();
   const { showMaterialLibrary, setShowMaterialLibrary, materials } = useMaterialStore();
   const { showToast } = useToastStore();
@@ -107,6 +109,17 @@ export function Sidebar() {
           <span className="text-xs px-1.5 py-0.5 bg-white/10 rounded">
             {materials.length}
           </span>
+        </button>
+        <button
+          onClick={() => setShowMaterialSummary(!showMaterialSummary)}
+          className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg transition-all duration-200 font-medium ${
+            showMaterialSummary
+              ? 'bg-accent/20 text-accent border border-accent/50'
+              : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-transparent'
+          }`}
+        >
+          <Layers size={18} />
+          材料汇总
         </button>
         <button
           onClick={() => setShowSettings(!showSettings)}

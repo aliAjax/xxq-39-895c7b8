@@ -11,6 +11,7 @@ import { ColorPalette } from './components/ColorPalette';
 import { PrintSpecification } from './components/PrintSpecification';
 import { ScheduleCalendar } from './components/ScheduleCalendar';
 import { ProjectOverview } from './components/ProjectOverview';
+import { MaterialSummary } from './components/MaterialSummary';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ExportCenter } from './components/ExportCenter';
 import { ToastContainer } from './components/Toast';
@@ -18,7 +19,7 @@ import { useStore } from './store/useStore';
 import { useMaterialStore } from './store/useMaterialStore';
 
 function App() {
-  const { selectedElementId, showReferenceBoard, showShoppingList, showColorPalette, showBudgetPanel, showPrintSpecification, showScheduleCalendar, showProjectOverview, showSettings, showExportCenter, setShowPrintSpecification, characters, activeCharacterId } = useStore();
+  const { selectedElementId, showReferenceBoard, showShoppingList, showColorPalette, showBudgetPanel, showPrintSpecification, showScheduleCalendar, showProjectOverview, showSettings, showExportCenter, showMaterialSummary, setShowPrintSpecification, characters, activeCharacterId } = useStore();
   const { showMaterialLibrary } = useMaterialStore();
   const isAddingNew = selectedElementId === 'new';
   const showEditor = selectedElementId !== null;
@@ -36,6 +37,8 @@ function App() {
             <ProjectOverview />
           ) : showMaterialLibrary ? (
             <MaterialLibrary />
+          ) : showMaterialSummary ? (
+            <MaterialSummary />
           ) : (
             <>
               <ClothingGrid />
