@@ -457,7 +457,9 @@ export function generateImportPreview(
         diff.referenceImageCount.newImages.length > 0 ||
         diff.referenceImageCount.removedImages.length > 0 ||
         diff.colorPaletteDiff.newColors.length > 0 ||
-        diff.colorPaletteDiff.removedColors.length > 0;
+        diff.colorPaletteDiff.removedColors.length > 0 ||
+        (diff.budgetDiff.hasBudget &&
+          diff.budgetDiff.importedTotal !== diff.budgetDiff.existingTotal);
 
       if (hasAnyDiff) {
         conflicts.push({

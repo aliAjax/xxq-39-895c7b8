@@ -360,6 +360,22 @@ function CharacterDiffView({ diff }: CharacterDiffViewProps) {
   );
 }
 
+function getTotalDiffCount(diff: CharacterDiffDetail): number {
+  let count = 0;
+  count += diff.basicInfoDiff.length;
+  count += diff.elementCount.newElements.length + diff.elementCount.removedElements.length;
+  count +=
+    diff.referenceImageCount.newImages.length + diff.referenceImageCount.removedImages.length;
+  count += diff.colorPaletteDiff.newColors.length + diff.colorPaletteDiff.removedColors.length;
+  if (
+    diff.budgetDiff.hasBudget &&
+    diff.budgetDiff.importedTotal !== diff.budgetDiff.existingTotal
+  ) {
+    count += 1;
+  }
+  return count;
+}
+
 function ConflictCharacterCard({
   conflict,
   index,
@@ -371,10 +387,7 @@ function ConflictCharacterCard({
 }) {
   const [showDetails, setShowDetails] = useState(false);
 
-  const newItemCount =
-    conflict.diff.elementCount.newElements.length +
-    conflict.diff.referenceImageCount.newImages.length +
-    conflict.diff.colorPaletteDiff.newColors.length;
+  const totalDiffCount = getTotalDiffCount(conflict.diff);
 
   return (
     <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl overflow-hidden">
@@ -405,12 +418,15 @@ function ConflictCharacterCard({
           </div>
         </div>
 
-        {newItemCount > 0 && (
+        {totalDiffCount > 0 && (
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className="w-full flex items-center justify-center gap-1 text-xs text-yellow-400 hover:text-yellow-300 py-1.5 mb-3 bg-yellow-500/10 hover:bg-yellow-500/15 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 text-xs text-yellow-400 hover:text-yellow-300 py-1.5 mb-3 bg-yellow-500/10 hover:bg-yellow-500/15 rounded-lg transition-colors"
           >
-            <span>查看详细差异</span>
+            <span className="px-1.5 py-0.5 bg-yellow-500/30 text-yellow-200 rounded text-[10px] font-medium">
+              {totalDiffCount} 处差异
+            </span>
+            <span>查看详情</span>
             {showDetails ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
         )}
