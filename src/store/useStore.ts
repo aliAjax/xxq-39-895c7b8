@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, DEFAULT_TASK_TYPES, TASK_TYPE_LABELS, BudgetSummary, BudgetItem } from '../types';
+import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, DEFAULT_TASK_TYPES, TASK_TYPE_LABELS, BudgetSummary, BudgetItem, CharacterStats } from '../types';
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 import { sampleCharacters } from '../data/sampleData';
 
@@ -24,6 +24,7 @@ interface StoreState {
   showBudgetPanel: boolean;
   showPrintSpecification: boolean;
   showScheduleCalendar: boolean;
+  showProjectOverview: boolean;
   newElementFromReference: { imageUrl: string; category: ClothingCategory } | null;
   showCharacterWizard: boolean;
   
@@ -36,6 +37,7 @@ interface StoreState {
   setShowBudgetPanel: (show: boolean) => void;
   setShowPrintSpecification: (show: boolean) => void;
   setShowScheduleCalendar: (show: boolean) => void;
+  setShowProjectOverview: (show: boolean) => void;
   setNewElementFromReference: (data: { imageUrl: string; category: ClothingCategory } | null) => void;
   setShowCharacterWizard: (show: boolean) => void;
   
@@ -76,6 +78,8 @@ interface StoreState {
   updateElementBudget: (characterId: string, elementId: string, budget: Partial<BudgetItem>) => void;
   toggleElementPurchased: (characterId: string, elementId: string) => void;
   replaceCharacters: (characters: Character[]) => void;
+  getCharacterStats: (characterId: string) => CharacterStats | null;
+  getAllSources: () => string[];
 }
 
 const initializeData = (): Character[] => {
@@ -97,6 +101,7 @@ export const useStore = create<StoreState>((set, get) => ({
   showBudgetPanel: false,
   showPrintSpecification: false,
   showScheduleCalendar: false,
+  showProjectOverview: false,
   newElementFromReference: null,
   showCharacterWizard: false,
 
@@ -109,6 +114,7 @@ export const useStore = create<StoreState>((set, get) => ({
   setShowBudgetPanel: (show) => set({ showBudgetPanel: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showPrintSpecification: false, showScheduleCalendar: false }),
   setShowPrintSpecification: (show) => set({ showPrintSpecification: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showScheduleCalendar: false }),
   setShowScheduleCalendar: (show) => set({ showScheduleCalendar: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false }),
+  setShowProjectOverview: (show) => set({ showProjectOverview: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, selectedElementId: null }),
   setNewElementFromReference: (data) => set({ newElementFromReference: data }),
   setShowCharacterWizard: (show) => set({ showCharacterWizard: show }),
 
@@ -760,6 +766,44 @@ export const useStore = create<StoreState>((set, get) => ({
       activeCharacterId: characters.length > 0 ? characters[0].id : null,
       selectedElementId: null,
     });
+  },
+
+  getCharacterStats: (characterId) => {
+    const state = get();
+    const character = state.characters.find((c) => c.id === characterId);
+    if (!character) return null;
+
+    const elements = character.elements;
+    const totalElements = elements.length;
+    const completedCount = elements.filter((el) => el.status === 'completed').length;
+    const completionRate = totalElements > 0 ? Math.round((completedCount / totalElements) * 100) : 0;
+    const pendingPurchaseCount = elements.filter((el) => el.needToBuy && el.status !== 'completed').length;
+    const inProgressCount = elements.filter((el) => el.status === 'in_progress').length;
+    const expertDifficultyCount = elements.filter((el) => el.difficulty === 'expert').length;
+    const hasUnansweredQuestions = elements.some((el) => el.questions && el.questions.trim() !== '' && el.status !== 'completed');
+    const lastUpdated = character.updatedAt;
+
+    return {
+      totalElements,
+      completedCount,
+      completionRate,
+      pendingPurchaseCount,
+      inProgressCount,
+      expertDifficultyCount,
+      hasUnansweredQuestions,
+      lastUpdated,
+    };
+  },
+
+  getAllSources: () => {
+    const state = get();
+    const sources = new Set<string>();
+    state.characters.forEach((char) => {
+      if (char.source && char.source.trim() !== '') {
+        sources.add(char.source.trim());
+      }
+    });
+    return Array.from(sources);
   },
 }));
 

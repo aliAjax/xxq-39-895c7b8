@@ -10,11 +10,12 @@ import { MaterialLibrary } from './components/MaterialLibrary';
 import { ColorPalette } from './components/ColorPalette';
 import { PrintSpecification } from './components/PrintSpecification';
 import { ScheduleCalendar } from './components/ScheduleCalendar';
+import { ProjectOverview } from './components/ProjectOverview';
 import { useStore } from './store/useStore';
 import { useMaterialStore } from './store/useMaterialStore';
 
 function App() {
-  const { selectedElementId, showReferenceBoard, showShoppingList, showColorPalette, showBudgetPanel, showPrintSpecification, showScheduleCalendar, setShowPrintSpecification, characters, activeCharacterId } = useStore();
+  const { selectedElementId, showReferenceBoard, showShoppingList, showColorPalette, showBudgetPanel, showPrintSpecification, showScheduleCalendar, showProjectOverview, setShowPrintSpecification, characters, activeCharacterId } = useStore();
   const { showMaterialLibrary } = useMaterialStore();
   const isAddingNew = selectedElementId === 'new';
   const showEditor = selectedElementId !== null;
@@ -28,7 +29,9 @@ function App() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
         <main id="main-content" className="flex-1 flex overflow-hidden">
-          {showMaterialLibrary ? (
+          {showProjectOverview ? (
+            <ProjectOverview />
+          ) : showMaterialLibrary ? (
             <MaterialLibrary />
           ) : (
             <>

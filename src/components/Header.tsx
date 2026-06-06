@@ -1,4 +1,4 @@
-import { Image, FileJson, ShoppingCart, ImageIcon, Palette, Wallet, Printer, Calendar } from 'lucide-react';
+import { Image, FileJson, ShoppingCart, ImageIcon, Palette, Wallet, Printer, Calendar, LayoutGrid } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { exportToJSON, exportToImage } from '../utils/export';
 
@@ -20,6 +20,8 @@ export function Header() {
     showPrintSpecification,
     setShowScheduleCalendar,
     showScheduleCalendar,
+    setShowProjectOverview,
+    showProjectOverview,
   } = useStore();
 
   const character = characters.find((c) => c.id === activeCharacterId);
@@ -114,6 +116,17 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowProjectOverview(!showProjectOverview)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${
+                showProjectOverview
+                  ? 'bg-accent text-white'
+                  : 'bg-white/10 text-gray-300 hover:bg-white/20'
+              }`}
+            >
+              <LayoutGrid size={18} />
+              项目总览
+            </button>
             <button
               onClick={() => setShowReferenceBoard(!showReferenceBoard)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium ${

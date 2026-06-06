@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus, Trash2, Package, Download, Upload } from 'lucide-react';
+import { Plus, Trash2, Package, Download, Upload, LayoutGrid } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useMaterialStore } from '../store/useMaterialStore';
 import { exportProjectPackage, readProjectPackage, generateImportPreview } from '../utils/projectPackage';
@@ -13,6 +13,8 @@ export function Sidebar() {
     setActiveCharacter,
     setShowCharacterWizard,
     deleteCharacter,
+    showProjectOverview,
+    setShowProjectOverview,
   } = useStore();
   const { showMaterialLibrary, setShowMaterialLibrary, materials } = useMaterialStore();
 
@@ -70,6 +72,17 @@ export function Sidebar() {
         >
           <Plus size={20} />
           新建角色
+        </button>
+        <button
+          onClick={() => setShowProjectOverview(!showProjectOverview)}
+          className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg transition-all duration-200 font-medium ${
+            showProjectOverview
+              ? 'bg-accent/20 text-accent border border-accent/50'
+              : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-transparent'
+          }`}
+        >
+          <LayoutGrid size={18} />
+          项目总览
         </button>
         <button
           onClick={() => setShowMaterialLibrary(!showMaterialLibrary)}

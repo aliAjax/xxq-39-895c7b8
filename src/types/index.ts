@@ -215,3 +215,14 @@ export interface ImportPreview {
   newMaterials: Material[];
   materialConflicts: MaterialImportConflict[];
 }
+
+export interface CharacterStats {
+  totalElements: number;
+  completedCount: number;
+  completionRate: number;
+  pendingPurchaseCount: number;
+  inProgressCount: number;
+  expertDifficultyCount: number;
+  hasUnansweredQuestions: boolean;
+  lastUpdated: number;
+}
