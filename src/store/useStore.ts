@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, DEFAULT_TASK_TYPES, TASK_TYPE_LABELS, BudgetSummary, BudgetItem, CharacterStats, TaskTemplate, AppSettings, DEFAULT_TASK_TEMPLATES } from '../types';
+import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, BudgetSummary, BudgetItem, CharacterStats, TaskTemplate, AppSettings, DEFAULT_TASK_TEMPLATES } from '../types';
 import { loadFromStorage, saveToStorage, loadSettings, saveSettings } from '../utils/storage';
 import { sampleCharacters } from '../data/sampleData';
 
@@ -74,7 +74,6 @@ interface StoreState {
   updateTask: (characterId: string, elementId: string, taskId: string, updates: Partial<ProductionTask>) => void;
   deleteTask: (characterId: string, elementId: string, taskId: string) => void;
   toggleTaskComplete: (characterId: string, elementId: string, taskId: string) => void;
-  addDefaultTasks: (characterId: string, elementId: string) => void;
   getTaskProgress: (element: ClothingElement) => number;
   
   getActiveCharacter: () => Character | undefined;
@@ -117,14 +116,14 @@ export const useStore = create<StoreState>((set, get) => ({
 
   setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false }),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
-  setSelectedElement: (id) => set({ selectedElementId: id, newElementFromReference: null }),
-  setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false }),
-  setShowReferenceBoard: (show) => set({ showReferenceBoard: show, showShoppingList: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false }),
-  setShowColorPalette: (show) => set({ showColorPalette: show, showShoppingList: false, showReferenceBoard: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false }),
-  setShowBudgetPanel: (show) => set({ showBudgetPanel: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showPrintSpecification: false, showScheduleCalendar: false }),
-  setShowPrintSpecification: (show) => set({ showPrintSpecification: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showScheduleCalendar: false }),
-  setShowScheduleCalendar: (show) => set({ showScheduleCalendar: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false }),
-  setShowProjectOverview: (show) => set({ showProjectOverview: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, selectedElementId: null }),
+  setSelectedElement: (id) => set({ selectedElementId: id, newElementFromReference: null, showSettings: false }),
+  setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false }),
+  setShowReferenceBoard: (show) => set({ showReferenceBoard: show, showShoppingList: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false }),
+  setShowColorPalette: (show) => set({ showColorPalette: show, showShoppingList: false, showReferenceBoard: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false }),
+  setShowBudgetPanel: (show) => set({ showBudgetPanel: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false }),
+  setShowPrintSpecification: (show) => set({ showPrintSpecification: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showScheduleCalendar: false, showSettings: false }),
+  setShowScheduleCalendar: (show) => set({ showScheduleCalendar: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showSettings: false }),
+  setShowProjectOverview: (show) => set({ showProjectOverview: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false, selectedElementId: null }),
   setNewElementFromReference: (data) => set({ newElementFromReference: data }),
   setShowCharacterWizard: (show) => set({ showCharacterWizard: show }),
   setShowSettings: (show) => set({ showSettings: show, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showProjectOverview: false }),
@@ -723,35 +722,6 @@ export const useStore = create<StoreState>((set, get) => ({
                       ),
                       updatedAt: now,
                     }
-                  : el
-              ),
-              updatedAt: now,
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
-  },
-
-  addDefaultTasks: (characterId, elementId) => {
-    const now = Date.now();
-    const defaultTasks: ProductionTask[] = DEFAULT_TASK_TYPES.map((type, index) => ({
-      id: `task-${now}-${index}`,
-      type,
-      name: TASK_TYPE_LABELS[type],
-      completed: false,
-      createdAt: now,
-      updatedAt: now,
-    }));
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              elements: char.elements.map((el) =>
-                el.id === elementId
-                  ? { ...el, tasks: [...el.tasks, ...defaultTasks], updatedAt: now }
                   : el
               ),
               updatedAt: now,
