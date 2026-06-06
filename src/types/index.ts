@@ -215,14 +215,49 @@ export interface ProjectPackage {
   materials: Material[];
 }
 
-export type ConflictResolution = 'overwrite' | 'skip' | 'saveAsNew';
+export type ConflictResolution = 'overwrite' | 'skip' | 'saveAsNew' | 'mergeNew';
 
 export type MaterialConflictResolution = 'overwrite' | 'skip';
+
+export interface CharacterDiffDetail {
+  basicInfoDiff: Array<{
+    field: string;
+    importedValue: unknown;
+    existingValue: unknown;
+  }>;
+  elementCount: {
+    imported: number;
+    existing: number;
+    newElements: string[];
+    removedElements: string[];
+    commonElements: string[];
+  };
+  referenceImageCount: {
+    imported: number;
+    existing: number;
+    newImages: string[];
+    removedImages: string[];
+    commonImages: string[];
+  };
+  colorPaletteDiff: {
+    importedCount: number;
+    existingCount: number;
+    newColors: string[];
+    removedColors: string[];
+    commonColors: string[];
+  };
+  budgetDiff: {
+    importedTotal: number;
+    existingTotal: number;
+    hasBudget: boolean;
+  };
+}
 
 export interface ImportConflict {
   importedCharacter: Character;
   existingCharacter: Character;
   resolution: ConflictResolution;
+  diff: CharacterDiffDetail;
 }
 
 export interface MaterialImportConflict {
