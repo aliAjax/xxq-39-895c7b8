@@ -30,7 +30,7 @@ interface StoreState {
   showSettings: boolean;
   settings: AppSettings;
   savedViews: SavedView[];
-  
+
   setActiveCharacter: (id: string | null) => void;
   setSelectedCategory: (category: ClothingCategory | 'all') => void;
   setSelectedElement: (id: string | null) => void;
@@ -44,27 +44,27 @@ interface StoreState {
   setNewElementFromReference: (data: { imageUrl: string; category: ClothingCategory } | null) => void;
   setShowCharacterWizard: (show: boolean) => void;
   setShowSettings: (show: boolean) => void;
-  
+
   updateTaskTemplates: (templates: TaskTemplate[]) => void;
   resetTaskTemplates: () => void;
   applyTaskTemplates: (characterId: string, elementId: string) => void;
   addMissingTasks: (characterId: string, elementId: string) => void;
-  
+
   addCharacter: () => void;
   createCharacterWithData: (data: { name: string; source: string; description: string; autoGenerateElements: boolean }) => void;
   updateCharacter: (id: string, updates: Partial<Character>) => void;
   deleteCharacter: (id: string) => void;
-  
+
   addElement: (characterId: string, element: Omit<ClothingElement, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateElement: (characterId: string, elementId: string, updates: Partial<ClothingElement>) => void;
   deleteElement: (characterId: string, elementId: string) => void;
-  
+
   addReferenceImage: (characterId: string, image: Omit<ReferenceImage, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updateReferenceImage: (characterId: string, imageId: string, updates: Partial<ReferenceImage>) => void;
   deleteReferenceImage: (characterId: string, imageId: string) => void;
   toggleReferenceTag: (characterId: string, imageId: string, tag: ReferenceTag) => void;
   createElementFromReference: (characterId: string, imageId: string, category: ClothingCategory) => void;
-  
+
   addPaletteColor: (characterId: string, color: Omit<PaletteColor, 'id' | 'createdAt' | 'updatedAt'>) => void;
   updatePaletteColor: (characterId: string, colorId: string, updates: Partial<PaletteColor>) => void;
   deletePaletteColor: (characterId: string, colorId: string) => void;
@@ -76,19 +76,19 @@ interface StoreState {
   deleteTask: (characterId: string, elementId: string, taskId: string) => void;
   toggleTaskComplete: (characterId: string, elementId: string, taskId: string) => void;
   getTaskProgress: (element: ClothingElement) => number;
-  
+
   getActiveCharacter: () => Character | undefined;
   getFilteredElements: () => ClothingElement[];
   getCompletionRate: () => number;
   getFilteredReferenceImages: (tagFilter: ReferenceTag | 'all') => ReferenceImage[];
-  
+
   getBudgetSummary: () => BudgetSummary | null;
   updateElementBudget: (characterId: string, elementId: string, budget: Partial<BudgetItem>) => void;
   toggleElementPurchased: (characterId: string, elementId: string) => void;
   replaceCharacters: (characters: Character[]) => void;
   getCharacterStats: (characterId: string) => CharacterStats | null;
   getAllSources: () => string[];
-  
+
   addSavedView: (name: string, filters: OverviewFilters) => void;
   deleteSavedView: (viewId: string) => void;
   updateSavedView: (viewId: string, updates: Partial<SavedView>) => void;

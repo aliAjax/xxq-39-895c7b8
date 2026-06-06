@@ -5,7 +5,7 @@ import { OverviewCompletionFilter } from '../types';
 
 export function ProjectOverview() {
   const { characters, setActiveCharacter, setShowProjectOverview, getCharacterStats, getAllSources, savedViews, addSavedView, deleteSavedView } = useStore();
-  
+
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [completionFilter, setCompletionFilter] = useState<OverviewCompletionFilter>('all');
   const [hasQuestionsFilter, setHasQuestionsFilter] = useState<boolean>(false);
