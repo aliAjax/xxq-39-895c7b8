@@ -1,15 +1,17 @@
 import { useState, useMemo } from 'react';
-import { Package, ShoppingCart, Hammer, Sparkles, Clock, AlertCircle, Filter, X } from 'lucide-react';
+import { Package, ShoppingCart, Hammer, Sparkles, Clock, AlertCircle, Filter, X, Plus, Save, Eye, Check } from 'lucide-react';
 import { useStore } from '../store/useStore';
-
-type CompletionFilter = 'all' | 'not_started' | 'in_progress' | 'completed';
+import { OverviewCompletionFilter } from '../types';
 
 export function ProjectOverview() {
-  const { characters, setActiveCharacter, setShowProjectOverview, getCharacterStats, getAllSources } = useStore();
+  const { characters, setActiveCharacter, setShowProjectOverview, getCharacterStats, getAllSources, savedViews, addSavedView, deleteSavedView } = useStore();
   
   const [sourceFilter, setSourceFilter] = useState<string>('all');
-  const [completionFilter, setCompletionFilter] = useState<CompletionFilter>('all');
+  const [completionFilter, setCompletionFilter] = useState<OverviewCompletionFilter>('all');
   const [hasQuestionsFilter, setHasQuestionsFilter] = useState<boolean>(false);
+  const [activeViewId, setActiveViewId] = useState<string | null>(null);
+  const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
+  const [newViewName, setNewViewName] = useState<string>('');
 
   const allSources = getAllSources();
 
@@ -107,9 +109,44 @@ export function ProjectOverview() {
     setSourceFilter('all');
     setCompletionFilter('all');
     setHasQuestionsFilter(false);
+    setActiveViewId(null);
   };
 
   const hasActiveFilters = sourceFilter !== 'all' || completionFilter !== 'all' || hasQuestionsFilter;
+
+  const applyView = (viewId: string) => {
+    const view = savedViews.find((v) => v.id === viewId);
+    if (view) {
+      setSourceFilter(view.filters.sourceFilter);
+      setCompletionFilter(view.filters.completionFilter);
+      setHasQuestionsFilter(view.filters.hasQuestionsFilter);
+      setActiveViewId(viewId);
+    }
+  };
+
+  const handleSaveView = () => {
+    if (newViewName.trim() === '') return;
+    addSavedView(newViewName.trim(), {
+      sourceFilter,
+      completionFilter,
+      hasQuestionsFilter,
+    });
+    setNewViewName('');
+    setShowSaveModal(false);
+  };
+
+  const handleDeleteView = (viewId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (activeViewId === viewId) {
+      setActiveViewId(null);
+    }
+    deleteSavedView(viewId);
+  };
+
+  const openSaveModal = () => {
+    setNewViewName('');
+    setShowSaveModal(true);
+  };
 
   const getCompletionColor = (rate: number) => {
     if (rate === 100) return 'from-success to-success-light';
@@ -196,6 +233,43 @@ export function ProjectOverview() {
         </div>
       </div>
 
+      {savedViews.length > 0 && (
+        <div className="px-6 py-3 border-b border-white/10 flex items-center gap-2 flex-wrap bg-white/[0.02]">
+          <div className="flex items-center gap-2 text-gray-400 mr-2">
+            <Eye size={16} />
+            <span className="text-xs font-medium">常用视图</span>
+          </div>
+          {savedViews.map((view) => (
+            <div
+              key={view.id}
+              onClick={() => applyView(view.id)}
+              className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs cursor-pointer transition-all ${
+                activeViewId === view.id
+                  ? 'bg-accent/20 text-accent border border-accent/40'
+                  : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 hover:border-white/20'
+              }`}
+            >
+              {activeViewId === view.id && <Check size={12} />}
+              <span className="max-w-[120px] truncate">{view.name}</span>
+              <button
+                onClick={(e) => handleDeleteView(view.id, e)}
+                className="opacity-0 group-hover:opacity-100 ml-0.5 text-gray-400 hover:text-danger transition-all"
+                title="删除视图"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={openSaveModal}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-gray-400 hover:text-white hover:bg-white/10 border border-dashed border-white/20 hover:border-white/40 transition-all"
+          >
+            <Plus size={12} />
+            <span>保存当前</span>
+          </button>
+        </div>
+      )}
+
       <div className="px-6 py-4 border-b border-white/10 flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2 text-gray-400">
           <Filter size={18} />
@@ -222,7 +296,7 @@ export function ProjectOverview() {
           <label className="text-xs text-gray-400">完成状态:</label>
           <select
             value={completionFilter}
-            onChange={(e) => setCompletionFilter(e.target.value as CompletionFilter)}
+            onChange={(e) => setCompletionFilter(e.target.value as OverviewCompletionFilter)}
             className="bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-accent/50"
           >
             <option value="all">全部</option>
@@ -245,11 +319,19 @@ export function ProjectOverview() {
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="text-xs text-accent hover:text-accent-light transition-colors ml-auto"
+            className="text-xs text-accent hover:text-accent-light transition-colors"
           >
             清除筛选
           </button>
         )}
+
+        <button
+          onClick={openSaveModal}
+          className="flex items-center gap-1.5 text-xs text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-all ml-auto"
+        >
+          <Save size={14} />
+          <span>保存视图</span>
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6">
@@ -342,6 +424,57 @@ export function ProjectOverview() {
           </div>
         )}
       </div>
+
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowSaveModal(false)}>
+          <div
+            className="bg-primary-light border border-white/10 rounded-xl p-6 w-96 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">保存当前视图</h3>
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-400 mb-4">
+              将当前的筛选条件保存为常用视图，方便下次快速切换。
+            </p>
+            <div className="mb-5">
+              <label className="block text-xs text-gray-400 mb-2">视图名称</label>
+              <input
+                type="text"
+                value={newViewName}
+                onChange={(e) => setNewViewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveView();
+                }}
+                placeholder="例如：进行中的项目"
+                autoFocus
+                className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-accent/50"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="flex-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-gray-300 rounded-lg text-sm transition-all"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveView}
+                disabled={newViewName.trim() === ''}
+                className="flex-1 px-4 py-2 bg-accent hover:bg-accent-light text-white rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

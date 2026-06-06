@@ -1,7 +1,8 @@
-import { Character, AppSettings, DEFAULT_TASK_TEMPLATES, ElementMaterial } from '../types';
+import { Character, AppSettings, DEFAULT_TASK_TEMPLATES, ElementMaterial, SavedView } from '../types';
 
 const STORAGE_KEY = 'cosplay-costume-analyzer-data';
 const SETTINGS_STORAGE_KEY = 'cosplay-costume-analyzer-settings';
+const VIEWS_STORAGE_KEY = 'cosplay-costume-analyzer-views';
 
 function migrateMaterials(materials: unknown): ElementMaterial[] {
   if (!Array.isArray(materials)) {
@@ -88,5 +89,25 @@ export function saveSettings(settings: AppSettings): void {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
   } catch (error) {
     console.error('Failed to save settings:', error);
+  }
+}
+
+export function loadViews(): SavedView[] {
+  try {
+    const data = localStorage.getItem(VIEWS_STORAGE_KEY);
+    if (data) {
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Failed to load views:', error);
+  }
+  return [];
+}
+
+export function saveViews(views: SavedView[]): void {
+  try {
+    localStorage.setItem(VIEWS_STORAGE_KEY, JSON.stringify(views));
+  } catch (error) {
+    console.error('Failed to save views:', error);
   }
 }

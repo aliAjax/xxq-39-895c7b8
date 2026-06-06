@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, BudgetSummary, BudgetItem, CharacterStats, TaskTemplate, AppSettings, DEFAULT_TASK_TEMPLATES } from '../types';
-import { loadFromStorage, saveToStorage, loadSettings, saveSettings } from '../utils/storage';
+import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, BudgetSummary, BudgetItem, CharacterStats, TaskTemplate, AppSettings, DEFAULT_TASK_TEMPLATES, SavedView, OverviewFilters } from '../types';
+import { loadFromStorage, saveToStorage, loadSettings, saveSettings, loadViews, saveViews } from '../utils/storage';
 import { sampleCharacters } from '../data/sampleData';
 
 const DEFAULT_CATEGORIES: ClothingCategory[] = ['head', 'top', 'bottom', 'shoes', 'accessory', 'weapon'];
@@ -29,6 +29,7 @@ interface StoreState {
   showCharacterWizard: boolean;
   showSettings: boolean;
   settings: AppSettings;
+  savedViews: SavedView[];
   
   setActiveCharacter: (id: string | null) => void;
   setSelectedCategory: (category: ClothingCategory | 'all') => void;
@@ -87,6 +88,10 @@ interface StoreState {
   replaceCharacters: (characters: Character[]) => void;
   getCharacterStats: (characterId: string) => CharacterStats | null;
   getAllSources: () => string[];
+  
+  addSavedView: (name: string, filters: OverviewFilters) => void;
+  deleteSavedView: (viewId: string) => void;
+  updateSavedView: (viewId: string, updates: Partial<SavedView>) => void;
 }
 
 const initializeData = (): Character[] => {
@@ -113,6 +118,7 @@ export const useStore = create<StoreState>((set, get) => ({
   showCharacterWizard: false,
   showSettings: false,
   settings: loadSettings(),
+  savedViews: loadViews(),
 
   setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false, showProjectOverview: false }),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
@@ -873,6 +879,39 @@ export const useStore = create<StoreState>((set, get) => ({
       }
     });
     return Array.from(sources);
+  },
+
+  addSavedView: (name, filters) => {
+    const now = Date.now();
+    const newView: SavedView = {
+      id: `view-${now}`,
+      name: name.trim(),
+      filters: { ...filters },
+      createdAt: now,
+    };
+    set((state) => {
+      const newViews = [...state.savedViews, newView];
+      saveViews(newViews);
+      return { savedViews: newViews };
+    });
+  },
+
+  deleteSavedView: (viewId) => {
+    set((state) => {
+      const newViews = state.savedViews.filter((v) => v.id !== viewId);
+      saveViews(newViews);
+      return { savedViews: newViews };
+    });
+  },
+
+  updateSavedView: (viewId, updates) => {
+    set((state) => {
+      const newViews = state.savedViews.map((v) =>
+        v.id === viewId ? { ...v, ...updates } : v
+      );
+      saveViews(newViews);
+      return { savedViews: newViews };
+    });
   },
 }));
 

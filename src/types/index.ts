@@ -253,3 +253,18 @@ export interface CharacterStats {
   hasUnansweredQuestions: boolean;
   lastUpdated: number;
 }
+
+export type OverviewCompletionFilter = 'all' | 'not_started' | 'in_progress' | 'completed';
+
+export interface OverviewFilters {
+  sourceFilter: string;
+  completionFilter: OverviewCompletionFilter;
+  hasQuestionsFilter: boolean;
+}
+
+export interface SavedView {
+  id: string;
+  name: string;
+  filters: OverviewFilters;
+  createdAt: number;
+}
