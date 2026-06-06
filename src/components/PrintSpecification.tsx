@@ -1,6 +1,7 @@
 import { X, Printer, Download, CheckCircle, AlertCircle, Star } from 'lucide-react';
 import { Character, ClothingCategory, CATEGORY_LABELS, DIFFICULTY_LABELS } from '../types';
 import { useStore } from '../store/useStore';
+import { useToastStore } from '../store/useToastStore';
 import { exportPrintSpecification } from '../utils/export';
 
 interface PrintSpecificationProps {
@@ -19,6 +20,7 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 
 export function PrintSpecification({ character, onClose }: PrintSpecificationProps) {
   const { getTaskProgress } = useStore();
+  const { showToast } = useToastStore();
 
   const elementsByCategory = character.elements.reduce((acc, el) => {
     if (!acc[el.category]) {
@@ -48,7 +50,13 @@ export function PrintSpecification({ character, onClose }: PrintSpecificationPro
   };
 
   const handleExportImage = async () => {
-    await exportPrintSpecification(character);
+    try {
+      await exportPrintSpecification(character);
+      showToast('success', '制作说明书导出成功');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '导出失败';
+      showToast('error', message);
+    }
   };
 
   return (

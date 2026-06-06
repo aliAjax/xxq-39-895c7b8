@@ -1,5 +1,6 @@
 import { Image, FileJson, ShoppingCart, ImageIcon, Palette, Wallet, Printer, Calendar, LayoutGrid, Download } from 'lucide-react';
 import { useStore } from '../store/useStore';
+import { useToastStore } from '../store/useToastStore';
 import { exportToJSON, exportToImage } from '../utils/export';
 
 export function Header() {
@@ -24,6 +25,7 @@ export function Header() {
     showProjectOverview,
     setShowExportCenter,
   } = useStore();
+  const { showToast } = useToastStore();
 
   const character = characters.find((c) => c.id === activeCharacterId);
   const completionRate = getCompletionRate();
@@ -36,8 +38,24 @@ export function Header() {
     );
   }
 
+  const handleExportJSON = () => {
+    try {
+      exportToJSON(character);
+      showToast('success', '角色JSON导出成功');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '导出失败';
+      showToast('error', message);
+    }
+  };
+
   const handleExportImage = async () => {
-    await exportToImage('main-content', `${character.name}-服装设定`);
+    try {
+      await exportToImage('main-content', `${character.name}-服装设定`);
+      showToast('success', '画面图片导出成功');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '导出失败';
+      showToast('error', message);
+    }
   };
 
   const circumference = 2 * Math.PI * 28;
@@ -195,7 +213,7 @@ export function Header() {
               制作说明书
             </button>
             <button
-              onClick={() => exportToJSON(character)}
+              onClick={handleExportJSON}
               className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-gray-300 rounded-lg transition-all"
             >
               <FileJson size={18} />

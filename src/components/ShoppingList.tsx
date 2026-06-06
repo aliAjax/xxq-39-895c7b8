@@ -1,6 +1,7 @@
 import { Download, Check, ChevronRight, Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Wallet, Package, CheckCircle2, Circle } from 'lucide-react';
 import { ClothingCategory } from '../types';
 import { useStore } from '../store/useStore';
+import { useToastStore } from '../store/useToastStore';
 import { exportShoppingList } from '../utils/export';
 
 const categoryIcons: Record<ClothingCategory, React.ElementType> = {
@@ -23,6 +24,7 @@ const categoryLabels: Record<ClothingCategory, string> = {
 
 export function ShoppingList() {
   const { showShoppingList, setShowShoppingList, getActiveCharacter } = useStore();
+  const { showToast } = useToastStore();
   const character = getActiveCharacter();
 
   if (!showShoppingList) return null;
@@ -218,7 +220,16 @@ export function ShoppingList() {
 
         <div className="p-6 border-t border-white/10">
           <button
-            onClick={() => character && exportShoppingList(character)}
+            onClick={() => {
+              if (!character) return;
+              try {
+                exportShoppingList(character);
+                showToast('success', '采购清单导出成功');
+              } catch (error) {
+                const message = error instanceof Error ? error.message : '导出失败';
+                showToast('error', message);
+              }
+            }}
             disabled={!character || shoppingItems.length === 0}
             className="w-full flex items-center justify-center gap-2 py-3 bg-accent hover:bg-accent-dark disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
           >

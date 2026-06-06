@@ -13,6 +13,7 @@ import { ScheduleCalendar } from './components/ScheduleCalendar';
 import { ProjectOverview } from './components/ProjectOverview';
 import { SettingsPanel } from './components/SettingsPanel';
 import { ExportCenter } from './components/ExportCenter';
+import { ToastContainer } from './components/Toast';
 import { useStore } from './store/useStore';
 import { useMaterialStore } from './store/useMaterialStore';
 
@@ -58,6 +59,7 @@ function App() {
       {showSettings && <SettingsPanel />}
       <CharacterCreationWizard />
       {showExportCenter && <ExportCenter />}
+      <ToastContainer />
     </div>
   );
 }

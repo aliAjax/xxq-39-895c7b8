@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Plus, Trash2, Package, Download, Upload, LayoutGrid, Settings } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useMaterialStore } from '../store/useMaterialStore';
+import { useToastStore } from '../store/useToastStore';
 import { exportProjectPackage, readProjectPackage, generateImportPreview } from '../utils/projectPackage';
 import { ImportPreview as ImportPreviewType } from '../types';
 import { ImportPreviewModal } from './ImportPreviewModal';
@@ -19,13 +20,20 @@ export function Sidebar() {
     setShowSettings,
   } = useStore();
   const { showMaterialLibrary, setShowMaterialLibrary, materials } = useMaterialStore();
+  const { showToast } = useToastStore();
 
   const [importPreview, setImportPreview] = useState<ImportPreviewType | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExportProject = () => {
-    exportProjectPackage(characters, materials);
+    try {
+      exportProjectPackage(characters, materials);
+      showToast('success', '项目包导出成功');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '导出失败';
+      showToast('error', message);
+    }
   };
 
   const handleImportClick = () => {
