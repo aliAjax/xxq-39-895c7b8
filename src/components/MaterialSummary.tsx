@@ -70,10 +70,10 @@ export function MaterialSummary() {
           const nameKey = mat.name.trim().toLowerCase();
           if (!nameKey) return;
 
-          if (!materialMap.has(mat.name)) {
+          if (!materialMap.has(nameKey)) {
             const libMat = libraryMap.get(nameKey) || null;
-            materialMap.set(mat.name, {
-              name: mat.name,
+            materialMap.set(nameKey, {
+              name: mat.name.trim(),
               libraryMaterial: libMat,
               inLibrary: !!libMat,
               libraryNeedToBuy: libMat?.needToBuy ?? false,
@@ -85,7 +85,7 @@ export function MaterialSummary() {
             });
           }
 
-          const summary = materialMap.get(mat.name)!;
+          const summary = materialMap.get(nameKey)!;
           const usage: MaterialUsage = {
             characterId: character.id,
             characterName: character.name,
@@ -106,7 +106,7 @@ export function MaterialSummary() {
       const uniqueElements = new Map<string, { budget: number; purchased: boolean; needToBuy: boolean }>();
 
       summary.usages.forEach((usage) => {
-        const key = `${usage.characterId}-${usage.elementId}`;
+        const key = `${usage.characterId}|${usage.elementId}`;
         if (!uniqueElements.has(key)) {
           uniqueElements.set(key, {
             budget: usage.elementBudget,
@@ -173,7 +173,7 @@ export function MaterialSummary() {
 
     summarizedMaterials.forEach((m) => {
       m.usages.forEach((u) => {
-        const key = `${u.characterId}-${u.elementId}`;
+        const key = `${u.characterId}|${u.elementId}`;
         if (!uniqueElements.has(key)) {
           uniqueElements.add(key);
           totalBudget += u.elementBudget;
@@ -211,7 +211,7 @@ export function MaterialSummary() {
     const items: Array<{ id: string; characterId: string; elementId: string; purchasable: boolean }> = [];
     filteredMaterials.forEach((m) => {
       m.usages.forEach((u) => {
-        const id = `${u.characterId}-${u.elementId}`;
+        const id = `${u.characterId}|${u.elementId}`;
         const purchasable = u.elementNeedToBuy && !u.elementPurchased;
         if (!items.some((i) => i.id === id)) {
           items.push({ id, characterId: u.characterId, elementId: u.elementId, purchasable });
@@ -250,7 +250,7 @@ export function MaterialSummary() {
 
     const elementIds = new Set<string>();
     material.usages.forEach((u) => {
-      const id = `${u.characterId}-${u.elementId}`;
+      const id = `${u.characterId}|${u.elementId}`;
       if (u.elementNeedToBuy && !u.elementPurchased) {
         elementIds.add(id);
       }
@@ -270,7 +270,7 @@ export function MaterialSummary() {
   const getMaterialSelectState = (material: SummarizedMaterial): 'none' | 'some' | 'all' => {
     const purchasableIds: string[] = [];
     material.usages.forEach((u) => {
-      const id = `${u.characterId}-${u.elementId}`;
+      const id = `${u.characterId}|${u.elementId}`;
       if (u.elementNeedToBuy && !u.elementPurchased && !purchasableIds.includes(id)) {
         purchasableIds.push(id);
       }
@@ -288,7 +288,7 @@ export function MaterialSummary() {
     if (selectedItems.size === 0) return;
 
     const items = Array.from(selectedItems).map((id) => {
-      const [characterId, elementId] = id.split('-').slice(0, 2);
+      const [characterId, elementId] = id.split('|');
       return { characterId, elementId };
     });
 
@@ -439,7 +439,7 @@ export function MaterialSummary() {
               const isExpanded = expandedMaterials.has(material.name);
               const selectState = getMaterialSelectState(material);
               const uniqueUsages = Array.from(
-                new Map(material.usages.map((u) => [`${u.characterId}-${u.elementId}`, u])).values()
+                new Map(material.usages.map((u) => [`${u.characterId}|${u.elementId}`, u])).values()
               );
 
               return (
@@ -528,7 +528,7 @@ export function MaterialSummary() {
                     <div className="border-t border-white/10">
                       <div className="p-2">
                         {uniqueUsages.map((usage) => {
-                          const itemId = `${usage.characterId}-${usage.elementId}`;
+                          const itemId = `${usage.characterId}|${usage.elementId}`;
                           const Icon = categoryIcons[usage.elementCategory];
                           const isSelected = selectedItems.has(itemId);
                           const canSelect = usage.elementNeedToBuy && !usage.elementPurchased;
