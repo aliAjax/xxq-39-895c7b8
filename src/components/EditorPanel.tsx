@@ -16,6 +16,7 @@ import { useStore } from '../store/useStore';
 import { useMaterialStore } from '../store/useMaterialStore';
 import { MaterialSelector } from './MaterialSelector';
 import { TaskList } from './TaskList';
+import { formatDateString, parseDateString } from '../utils/dateUtils';
 
 interface EditorPanelProps {
   isNew?: boolean;
@@ -560,12 +561,12 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
               <label className="block text-sm text-gray-400 mb-1.5">计划开始日期</label>
               <input
                 type="date"
-                value={formData.scheduleStartDate ? new Date(formData.scheduleStartDate).toISOString().split('T')[0] : ''}
+                value={formData.scheduleStartDate ? formatDateString(formData.scheduleStartDate) : ''}
                 onChange={(e) => {
                   const value = e.target.value;
                   setFormData({
                     ...formData,
-                    scheduleStartDate: value ? new Date(value).getTime() : undefined,
+                    scheduleStartDate: parseDateString(value),
                   });
                 }}
                 className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-accent/50 text-sm"
@@ -576,12 +577,12 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
               <label className="block text-sm text-gray-400 mb-1.5">截止日期</label>
               <input
                 type="date"
-                value={formData.scheduleDueDate ? new Date(formData.scheduleDueDate).toISOString().split('T')[0] : ''}
+                value={formData.scheduleDueDate ? formatDateString(formData.scheduleDueDate) : ''}
                 onChange={(e) => {
                   const value = e.target.value;
                   setFormData({
                     ...formData,
-                    scheduleDueDate: value ? new Date(value).getTime() : undefined,
+                    scheduleDueDate: parseDateString(value),
                   });
                 }}
                 className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-accent/50 text-sm"

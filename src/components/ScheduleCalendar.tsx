@@ -13,6 +13,16 @@ import {
 } from 'lucide-react';
 import { ClothingElement, CATEGORY_LABELS, STATUS_LABELS, ProductionStatus } from '../types';
 import { useStore } from '../store/useStore';
+import {
+  getStartOfDay,
+  isSameDay,
+  getStartOfWeek,
+  getStartOfMonth,
+  getMonthMatrix,
+  isToday as isTodayUtil,
+  isCurrentMonth as isCurrentMonthUtil,
+  formatRangeText,
+} from '../utils/dateUtils';
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
@@ -24,60 +34,6 @@ interface ScheduledElement extends ClothingElement {
   isStartDate: boolean;
   isDueDate: boolean;
 }
-
-const getStartOfDay = (timestamp: number) => {
-  const date = new Date(timestamp);
-  date.setHours(0, 0, 0, 0);
-  return date.getTime();
-};
-
-const isSameDay = (ts1: number, ts2: number) => {
-  const d1 = new Date(ts1);
-  const d2 = new Date(ts2);
-  return (
-    d1.getFullYear() === d2.getFullYear() &&
-    d1.getMonth() === d2.getMonth() &&
-    d1.getDate() === d2.getDate()
-  );
-};
-
-const getStartOfWeek = (timestamp: number) => {
-  const date = new Date(timestamp);
-  const day = date.getDay();
-  const start = new Date(date);
-  start.setDate(date.getDate() - day);
-  start.setHours(0, 0, 0, 0);
-  return start.getTime();
-};
-
-const getStartOfMonth = (timestamp: number) => {
-  const date = new Date(timestamp);
-  const start = new Date(date.getFullYear(), date.getMonth(), 1);
-  start.setHours(0, 0, 0, 0);
-  return start.getTime();
-};
-
-const getDaysInMonth = (timestamp: number) => {
-  const date = new Date(timestamp);
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-};
-
-const getMonthMatrix = (monthStart: number) => {
-  const startDay = new Date(monthStart).getDay();
-  const daysInMonth = getDaysInMonth(monthStart);
-  const prevMonthDays = startDay;
-  const totalCells = Math.ceil((prevMonthDays + daysInMonth) / 7) * 7;
-
-  const days: number[] = [];
-  for (let i = 0; i < totalCells; i++) {
-    const dayOffset = i - startDay;
-    const date = new Date(monthStart);
-    date.setDate(dayOffset + 1);
-    date.setHours(0, 0, 0, 0);
-    days.push(date.getTime());
-  }
-  return days;
-};
 
 const getElementStatusCategory = (element: ClothingElement): FilterStatus => {
   const today = getStartOfDay(Date.now());
@@ -302,36 +258,10 @@ export function ScheduleCalendar() {
     setShowScheduleCalendar(false);
   };
 
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return {
-      month: date.getMonth() + 1,
-      day: date.getDate(),
-      weekday: WEEKDAYS[date.getDay()],
-    };
-  };
-
-  const isToday = (timestamp: number) => isSameDay(timestamp, Date.now());
-
-  const isCurrentMonth = (timestamp: number) => {
-    const d1 = new Date(timestamp);
-    const d2 = new Date(currentAnchor);
-    return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
-  };
-
-  const rangeText = useMemo(() => {
-    if (viewMode === 'week') {
-      const start = formatDate(weekDates[0]);
-      const end = formatDate(weekDates[6]);
-      if (start.month === end.month) {
-        return `${start.month}月 ${start.day}日 - ${end.day}日`;
-      }
-      return `${start.month}月 ${start.day}日 - ${end.month}月 ${end.day}日`;
-    } else {
-      const date = new Date(currentAnchor);
-      return `${date.getFullYear()}年 ${date.getMonth() + 1}月`;
-    }
-  }, [viewMode, weekDates, currentAnchor]);
+  const rangeText = useMemo(
+    () => formatRangeText(viewMode, weekDates, currentAnchor),
+    [viewMode, weekDates, currentAnchor]
+  );
 
   const renderElementCard = (element: ScheduledElement, idx: number, compact: boolean = false) => {
     const { isStartDate, isDueDate } = element;
@@ -408,9 +338,12 @@ export function ScheduleCalendar() {
   const renderWeekView = () => (
     <div className="space-y-4">
       {weekDates.map((date) => {
-        const dateInfo = formatDate(date);
+        const dateObj = new Date(date);
+        const month = dateObj.getMonth() + 1;
+        const day = dateObj.getDate();
+        const weekday = WEEKDAYS[dateObj.getDay()];
         const elements = getElementsForDate(date);
-        const today = isToday(date);
+        const today = isTodayUtil(date);
 
         return (
           <div key={date} className="bg-white/5 rounded-xl overflow-hidden">
@@ -425,14 +358,14 @@ export function ScheduleCalendar() {
                     today ? 'text-accent' : 'text-gray-400'
                   }`}
                 >
-                  {dateInfo.weekday}
+                  {weekday}
                 </span>
                 <span
                   className={`text-lg font-bold ${
                     today ? 'text-white' : 'text-gray-300'
                   }`}
                 >
-                  {dateInfo.month}/{dateInfo.day}
+                  {month}/{day}
                 </span>
               </div>
               {elements.length > 0 && (
@@ -473,8 +406,8 @@ export function ScheduleCalendar() {
         <div className="flex-1 grid grid-cols-7 grid-rows-6 gap-px bg-white/5 rounded-xl overflow-hidden">
           {monthDates.map((date) => {
             const elements = getElementsForDate(date);
-            const today = isToday(date);
-            const inMonth = isCurrentMonth(date);
+            const today = isTodayUtil(date);
+            const inMonth = isCurrentMonthUtil(date, currentAnchor);
 
             return (
               <div
