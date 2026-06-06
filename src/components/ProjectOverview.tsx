@@ -2,9 +2,10 @@ import { useState, useMemo } from 'react';
 import { Package, ShoppingCart, Hammer, Sparkles, Clock, AlertCircle, Filter, X, Plus, Save, Eye, Check, Wallet, PieChart, TrendingUp } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { OverviewCompletionFilter } from '../types';
+import { calculateProjectBudget, calculateCharacterBudget } from '../utils/budgetUtils';
 
 export function ProjectOverview() {
-  const { characters, setActiveCharacter, setShowProjectOverview, getCharacterStats, getCharacterBudgetSummary, getProjectBudgetSummary, getAllSources, savedViews, addSavedView, deleteSavedView } = useStore();
+  const { characters, setActiveCharacter, setShowProjectOverview, getCharacterStats, getAllSources, savedViews, addSavedView, deleteSavedView } = useStore();
 
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [completionFilter, setCompletionFilter] = useState<OverviewCompletionFilter>('all');
@@ -79,8 +80,8 @@ export function ProjectOverview() {
   }, [characters, getCharacterStats]);
 
   const projectBudget = useMemo(() => {
-    return getProjectBudgetSummary();
-  }, [getProjectBudgetSummary]);
+    return calculateProjectBudget(characters);
+  }, [characters]);
 
   const budgetProgress = projectBudget.totalEstimated > 0
     ? (projectBudget.totalPurchased / projectBudget.totalEstimated) * 100
@@ -403,12 +404,12 @@ export function ProjectOverview() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredCharacters.map((char, index) => {
               const stats = getCharacterStats(char.id);
-              const budget = getCharacterBudgetSummary(char.id);
+              const budget = calculateCharacterBudget(char);
               if (!stats) return null;
 
               const completionLabel = getCompletionLabel(stats.completionRate, stats.totalElements);
               const gradientClass = getCompletionColor(stats.completionRate);
-              const budgetProgress = budget && budget.totalEstimated > 0
+              const budgetProgress = budget.totalEstimated > 0
                 ? (budget.totalPurchased / budget.totalEstimated) * 100
                 : 0;
 
@@ -456,29 +457,50 @@ export function ProjectOverview() {
                     </div>
                   </div>
 
-                  {budget && budget.totalEstimated > 0 && (
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between text-sm mb-2">
-                        <span className="text-gray-400 flex items-center gap-1">
-                          <Wallet size={14} />
-                          预算进度
-                        </span>
-                        <span className="font-medium text-success">
-                          {Math.round(budgetProgress)}%
-                        </span>
-                      </div>
-                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-success to-success-light rounded-full transition-all duration-500"
-                          style={{ width: `${budgetProgress}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>总预算 ¥{budget.totalEstimated.toLocaleString()}</span>
-                        <span>已购 ¥{budget.totalPurchased.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  )}
+                  <div className="mb-4">
+                    {budget.totalEstimated > 0 ? (
+                      <>
+                        <div className="flex items-center justify-between text-sm mb-2">
+                          <span className="text-gray-400 flex items-center gap-1">
+                            <Wallet size={14} />
+                            预算进度
+                          </span>
+                          <span className="font-medium text-success">
+                            {Math.round(budgetProgress)}%
+                          </span>
+                        </div>
+                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-success to-success-light rounded-full transition-all duration-500"
+                            style={{ width: `${budgetProgress}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span>总预算 ¥{budget.totalEstimated.toLocaleString()}</span>
+                          <span>已购 ¥{budget.totalPurchased.toLocaleString()}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between text-sm mb-2">
+                          <span className="text-gray-500 flex items-center gap-1">
+                            <Wallet size={14} />
+                            预算进度
+                          </span>
+                          <span className="font-medium text-gray-500">
+                            暂无
+                          </span>
+                        </div>
+                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                          <div className="h-full bg-gray-600/50 rounded-full" style={{ width: '0%' }} />
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-600 mt-1">
+                          <span>暂未设置预算</span>
+                          <span>¥0</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     <div className="bg-white/5 rounded-lg p-2 text-center">
