@@ -1,4 +1,4 @@
-import { Download, Check, ChevronRight, Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Wallet } from 'lucide-react';
+import { Download, Check, ChevronRight, Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Wallet, Package } from 'lucide-react';
 import { ClothingCategory } from '../types';
 import { useStore } from '../store/useStore';
 import { exportShoppingList } from '../utils/export';
@@ -148,8 +148,14 @@ export function ShoppingList() {
                             {item.name}
                           </p>
                           {item.materials.length > 0 && (
-                            <p className="text-xs text-gray-500 truncate">
-                              {item.materials.join(' / ')}
+                            <p className="text-xs text-gray-500 truncate flex items-center gap-1">
+                              {item.materials.map((m, i) => (
+                                <span key={i} className="inline-flex items-center gap-0.5">
+                                  {i > 0 && <span>/</span>}
+                                  {m.materialId && <Package size={10} className="text-accent" />}
+                                  <span className={m.materialId ? 'text-accent/80' : ''}>{m.name}</span>
+                                </span>
+                              ))}
                             </p>
                           )}
                         </div>

@@ -1,4 +1,4 @@
-import { Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Plus, Edit3, ListTodo } from 'lucide-react';
+import { Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Plus, Edit3, ListTodo, Package } from 'lucide-react';
 import { ClothingElement, ClothingCategory, STATUS_LABELS, DIFFICULTY_LABELS, CATEGORY_LABELS } from '../types';
 import { useStore } from '../store/useStore';
 
@@ -114,9 +114,15 @@ export function ElementCard({ element, index }: ElementCardProps) {
             {element.materials.map((material, i) => (
               <span
                 key={i}
-                className="text-xs px-2 py-0.5 bg-white/10 text-gray-300 rounded"
+                className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 ${
+                  material.materialId
+                    ? 'bg-accent/20 text-accent'
+                    : 'bg-white/10 text-gray-300'
+                }`}
+                title={material.notes || ''}
               >
-                {material}
+                {material.materialId && <Package size={10} />}
+                {material.name}
               </span>
             ))}
           </div>

@@ -29,7 +29,11 @@ export function PrintSpecification({ character, onClose }: PrintSpecificationPro
   }, {} as Record<ClothingCategory, typeof character.elements>);
 
   const allColors = [...new Set(character.elements.flatMap((el) => el.colors))];
-  const allMaterials = [...new Set(character.elements.flatMap((el) => el.materials))];
+  const allMaterials = [
+    ...new Map(
+      character.elements.flatMap((el) => el.materials).map((m) => [m.name, m])
+    ).values(),
+  ];
   const questionsList = character.elements.filter((el) => el.questions.trim());
   const needToBuyItems = character.elements.filter((el) => el.needToBuy);
 
@@ -135,9 +139,15 @@ export function PrintSpecification({ character, onClose }: PrintSpecificationPro
                   {allMaterials.map((material, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1.5 bg-blue-500/10 text-blue-300 border border-blue-500/30 rounded-lg text-sm"
+                      className={`px-3 py-1.5 rounded-lg text-sm border ${
+                        material.materialId
+                          ? 'bg-accent/10 text-accent border-accent/30'
+                          : 'bg-blue-500/10 text-blue-300 border-blue-500/30'
+                      }`}
+                      title={material.notes || ''}
                     >
-                      {material}
+                      {material.name}
+                      {material.materialId && ' (库)'}
                     </span>
                   ))}
                 </div>
@@ -179,7 +189,7 @@ export function PrintSpecification({ character, onClose }: PrintSpecificationPro
                                   </div>
                                   {element.materials.length > 0 && (
                                     <p className="text-xs text-gray-500 mt-1">
-                                      材质: {element.materials.join(', ')}
+                                      材质: {element.materials.map((m) => m.name).join(', ')}
                                     </p>
                                   )}
                                   {element.notes && (

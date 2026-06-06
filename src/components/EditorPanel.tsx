@@ -11,6 +11,8 @@ import {
   DIFFICULTY_LABELS,
   STATUS_LABELS,
   TASK_TYPE_LABELS,
+  ElementMaterial,
+  Material,
 } from '../types';
 import { useStore } from '../store/useStore';
 import { useMaterialStore } from '../store/useMaterialStore';
@@ -49,7 +51,7 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
   const element = character?.elements.find((e) => e.id === selectedElementId);
 
   const [formData, setFormData] = useState<
-    Partial<ClothingElement> & { category: ClothingCategory; tasks: ProductionTask[] }
+    Partial<ClothingElement> & { category: ClothingCategory; tasks: ProductionTask[]; materials: ElementMaterial[] }
   >({
     name: '',
     category: 'head',
@@ -178,26 +180,34 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
   };
 
   const addMaterial = () => {
-    if (newMaterial.trim() && !formData.materials?.includes(newMaterial.trim())) {
+    if (newMaterial.trim() && !formData.materials?.some((m) => m.name === newMaterial.trim())) {
       setFormData({
         ...formData,
-        materials: [...(formData.materials || []), newMaterial.trim()],
+        materials: [...(formData.materials || []), { name: newMaterial.trim() }],
       });
       setNewMaterial('');
     }
   };
 
-  const addMaterialFromLibrary = (materialName: string) => {
-    if (!formData.materials?.includes(materialName)) {
+  const addMaterialFromLibrary = (material: Material) => {
+    if (!formData.materials?.some((m) => m.materialId === material.id || m.name === material.name)) {
       setFormData({
         ...formData,
-        materials: [...(formData.materials || []), materialName],
+        materials: [
+          ...(formData.materials || []),
+          {
+            name: material.name,
+            materialId: material.id,
+            needToBuy: material.needToBuy,
+            notes: material.notes,
+          },
+        ],
       });
     }
   };
 
-  const removeMaterial = (material: string) => {
-    setFormData({ ...formData, materials: formData.materials?.filter((m) => m !== material) });
+  const removeMaterial = (materialName: string) => {
+    setFormData({ ...formData, materials: formData.materials?.filter((m) => m.name !== materialName) });
   };
 
   const addImageUrl = () => {
@@ -373,11 +383,17 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
             {formData.materials?.map((material, i) => (
               <span
                 key={i}
-                className="text-xs px-2 py-1 bg-white/10 text-gray-300 rounded flex items-center gap-1 group"
+                className={`text-xs px-2 py-1 rounded flex items-center gap-1 group ${
+                  material.materialId
+                    ? 'bg-accent/20 text-accent border border-accent/30'
+                    : 'bg-white/10 text-gray-300'
+                }`}
+                title={material.notes || ''}
               >
-                {material}
+                {material.materialId && <Package size={10} />}
+                {material.name}
                 <button
-                  onClick={() => removeMaterial(material)}
+                  onClick={() => removeMaterial(material.name)}
                   className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-opacity"
                 >
                   <X size={12} />

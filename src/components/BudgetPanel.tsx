@@ -1,4 +1,4 @@
-import { ChevronRight, Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Check, PieChart, TrendingUp, ShoppingBag, Wallet } from 'lucide-react';
+import { ChevronRight, Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Check, PieChart, TrendingUp, ShoppingBag, Wallet, Package } from 'lucide-react';
 import { ClothingCategory } from '../types';
 import { useStore } from '../store/useStore';
 
@@ -170,10 +170,11 @@ export function BudgetPanel() {
             <div className="space-y-2">
               {budgetSummary.elements.map((element) => {
                 const Icon = categoryIcons[element.category];
+                const fullElement = character.elements.find((el) => el.id === element.id);
                 return (
                   <div
                     key={element.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg transition-all ${
+                    className={`flex items-start gap-3 p-3 rounded-lg transition-all ${
                       element.purchasedStatus
                         ? 'bg-success/10'
                         : 'bg-white/5 hover:bg-white/10'
@@ -181,7 +182,7 @@ export function BudgetPanel() {
                   >
                     <button
                       onClick={() => activeCharacterId && toggleElementPurchased(activeCharacterId, element.id)}
-                      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 mt-0.5 ${
                         element.purchasedStatus
                           ? 'border-success bg-success'
                           : 'border-white/30 hover:border-accent'
@@ -207,6 +208,24 @@ export function BudgetPanel() {
                       <p className="text-xs text-gray-500">
                         {categoryLabels[element.category]}
                       </p>
+                      {fullElement && fullElement.materials.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {fullElement.materials.map((m, i) => (
+                            <span
+                              key={i}
+                              className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
+                                m.materialId
+                                  ? 'bg-accent/20 text-accent'
+                                  : 'bg-white/10 text-gray-400'
+                              }`}
+                              title={m.notes || ''}
+                            >
+                              {m.materialId && <Package size={9} />}
+                              {m.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className={`font-semibold ${

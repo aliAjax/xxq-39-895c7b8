@@ -54,7 +54,7 @@ export interface ClothingElement {
   name: string;
   category: ClothingCategory;
   colors: string[];
-  materials: string[];
+  materials: ElementMaterial[];
   difficulty: DifficultyLevel;
   referenceImages: string[];
   notes: string;
@@ -135,6 +135,13 @@ export const CATEGORY_ICONS: Record<ClothingCategory, string> = {
   accessory: 'Sparkles',
   weapon: 'Sword',
 };
+
+export interface ElementMaterial {
+  name: string;
+  materialId?: string;
+  needToBuy?: boolean;
+  notes?: string;
+}
 
 export interface Material {
   id: string;

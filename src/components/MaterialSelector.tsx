@@ -1,10 +1,10 @@
 import { X, Search, Package, Plus, CheckCircle2 } from 'lucide-react';
-import { CATEGORY_LABELS } from '../types';
+import { CATEGORY_LABELS, Material, ElementMaterial } from '../types';
 import { useMaterialStore } from '../store/useMaterialStore';
 
 interface MaterialSelectorProps {
-  currentMaterials: string[];
-  onSelect: (materialName: string) => void;
+  currentMaterials: ElementMaterial[];
+  onSelect: (material: Material) => void;
   onClose: () => void;
 }
 
@@ -26,8 +26,8 @@ export function MaterialSelector({
 
   const filteredMaterials = getFilteredMaterials();
 
-  const handleSelect = (materialName: string) => {
-    onSelect(materialName);
+  const handleSelect = (material: Material) => {
+    onSelect(material);
     onClose();
   };
 
@@ -104,11 +104,13 @@ export function MaterialSelector({
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {filteredMaterials.map((material) => {
-                const isSelected = currentMaterials.includes(material.name);
+                const isSelected = currentMaterials.some(
+                  (m) => m.materialId === material.id || m.name === material.name
+                );
                 return (
                   <div
                     key={material.id}
-                    onClick={() => !isSelected && handleSelect(material.name)}
+                    onClick={() => !isSelected && handleSelect(material)}
                     className={`group relative p-4 rounded-xl cursor-pointer transition-all duration-200 border ${
                       isSelected
                         ? 'bg-accent/20 border-accent/50 cursor-not-allowed'
