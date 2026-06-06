@@ -31,6 +31,7 @@ interface StoreState {
   showSettings: boolean;
   settings: AppSettings;
   savedViews: SavedView[];
+  showExportCenter: boolean;
 
   setActiveCharacter: (id: string | null) => void;
   setSelectedCategory: (category: ClothingCategory | 'all') => void;
@@ -45,6 +46,7 @@ interface StoreState {
   setNewElementFromReference: (data: { imageUrl: string; category: ClothingCategory } | null) => void;
   setShowCharacterWizard: (show: boolean) => void;
   setShowSettings: (show: boolean) => void;
+  setShowExportCenter: (show: boolean) => void;
 
   updateTaskTemplates: (templates: TaskTemplate[]) => void;
   resetTaskTemplates: () => void;
@@ -122,6 +124,7 @@ export const useStore = create<StoreState>((set, get) => ({
   showSettings: false,
   settings: loadSettings(),
   savedViews: loadViews(),
+  showExportCenter: false,
 
   setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false, showProjectOverview: false }),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
@@ -136,6 +139,7 @@ export const useStore = create<StoreState>((set, get) => ({
   setNewElementFromReference: (data) => set({ newElementFromReference: data }),
   setShowCharacterWizard: (show) => set({ showCharacterWizard: show }),
   setShowSettings: (show) => set({ showSettings: show, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showProjectOverview: false }),
+  setShowExportCenter: (show) => set({ showExportCenter: show }),
 
   updateTaskTemplates: (templates) => {
     set((state) => {

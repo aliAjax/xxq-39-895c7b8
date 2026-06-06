@@ -12,11 +12,12 @@ import { PrintSpecification } from './components/PrintSpecification';
 import { ScheduleCalendar } from './components/ScheduleCalendar';
 import { ProjectOverview } from './components/ProjectOverview';
 import { SettingsPanel } from './components/SettingsPanel';
+import { ExportCenter } from './components/ExportCenter';
 import { useStore } from './store/useStore';
 import { useMaterialStore } from './store/useMaterialStore';
 
 function App() {
-  const { selectedElementId, showReferenceBoard, showShoppingList, showColorPalette, showBudgetPanel, showPrintSpecification, showScheduleCalendar, showProjectOverview, showSettings, setShowPrintSpecification, characters, activeCharacterId } = useStore();
+  const { selectedElementId, showReferenceBoard, showShoppingList, showColorPalette, showBudgetPanel, showPrintSpecification, showScheduleCalendar, showProjectOverview, showSettings, showExportCenter, setShowPrintSpecification, characters, activeCharacterId } = useStore();
   const { showMaterialLibrary } = useMaterialStore();
   const isAddingNew = selectedElementId === 'new';
   const showEditor = selectedElementId !== null;
@@ -56,6 +57,7 @@ function App() {
       )}
       {showSettings && <SettingsPanel />}
       <CharacterCreationWizard />
+      {showExportCenter && <ExportCenter />}
     </div>
   );
 }

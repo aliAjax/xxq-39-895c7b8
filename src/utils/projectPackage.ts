@@ -2,25 +2,41 @@ import { Character, Material, ProjectPackage, ImportPreview, ImportConflict, Mat
 
 const PACKAGE_VERSION = '1.0.0';
 
-export function exportProjectPackage(characters: Character[], materials: Material[]): void {
-  const pkg: ProjectPackage = {
-    version: PACKAGE_VERSION,
-    exportedAt: Date.now(),
-    characters,
-    materials,
-  };
-  const dataStr = JSON.stringify(pkg, null, 2);
-  const dataBlob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(dataBlob);
-
-  const link = document.createElement('a');
-  link.href = url;
+export function getProjectPackageFilename(): string {
   const dateStr = new Date().toISOString().slice(0, 10);
-  link.download = `cosplay-project-${dateStr}.json`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  return `cosplay-project-${dateStr}.json`;
+}
+
+export function exportProjectPackage(characters: Character[], materials: Material[]): void {
+  try {
+    if (characters.length === 0 && materials.length === 0) {
+      throw new Error('项目为空，没有可导出的内容');
+    }
+
+    const pkg: ProjectPackage = {
+      version: PACKAGE_VERSION,
+      exportedAt: Date.now(),
+      characters,
+      materials,
+    };
+    const dataStr = JSON.stringify(pkg, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = getProjectPackageFilename();
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    console.error('Failed to export project package:', error);
+    throw new Error('导出项目包失败，请重试');
+  }
 }
 
 export function readProjectPackage(file: File): Promise<ProjectPackage> {

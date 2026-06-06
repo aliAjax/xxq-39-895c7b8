@@ -1,4 +1,4 @@
-import { Image, FileJson, ShoppingCart, ImageIcon, Palette, Wallet, Printer, Calendar, LayoutGrid } from 'lucide-react';
+import { Image, FileJson, ShoppingCart, ImageIcon, Palette, Wallet, Printer, Calendar, LayoutGrid, Download } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { exportToJSON, exportToImage } from '../utils/export';
 
@@ -22,6 +22,7 @@ export function Header() {
     showScheduleCalendar,
     setShowProjectOverview,
     showProjectOverview,
+    setShowExportCenter,
   } = useStore();
 
   const character = characters.find((c) => c.id === activeCharacterId);
@@ -206,6 +207,13 @@ export function Header() {
             >
               <Image size={18} />
               图片
+            </button>
+            <button
+              onClick={() => setShowExportCenter(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-dark text-white rounded-lg transition-all font-medium"
+            >
+              <Download size={18} />
+              导出中心
             </button>
           </div>
         </div>
