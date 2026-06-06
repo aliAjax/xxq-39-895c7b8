@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Plus, Trash2, Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Image as ImageIcon, FileText } from 'lucide-react';
+import { X, Plus, Trash2, Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Image as ImageIcon, FileText, ShoppingCart } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { ReferenceImage, ReferenceTag, REFERENCE_TAG_LABELS, ClothingCategory, CATEGORY_LABELS } from '../types';
 
@@ -38,8 +38,8 @@ export function ReferenceBoard() {
     getFilteredReferenceImages,
     deleteReferenceImage,
     toggleReferenceTag,
-    createElementFromReference,
     addReferenceImage,
+    addElement,
   } = useStore();
 
   const [tagFilter, setTagFilter] = useState<ReferenceTag | 'all'>('all');
@@ -48,7 +48,11 @@ export function ReferenceBoard() {
   const [newImageNotes, setNewImageNotes] = useState('');
   const [selectedTags, setSelectedTags] = useState<ReferenceTag[]>([]);
   const [selectedImage, setSelectedImage] = useState<ReferenceImage | null>(null);
-  const [showQuickCreateMenu, setShowQuickCreateMenu] = useState<string | null>(null);
+  const [showCreateElementModal, setShowCreateElementModal] = useState(false);
+  const [creatingFromImage, setCreatingFromImage] = useState<ReferenceImage | null>(null);
+  const [newElementName, setNewElementName] = useState('');
+  const [newElementCategory, setNewElementCategory] = useState<ClothingCategory>('top');
+  const [newElementNeedToBuy, setNewElementNeedToBuy] = useState(false);
 
   const images = getFilteredReferenceImages(tagFilter);
 
@@ -80,10 +84,35 @@ export function ReferenceBoard() {
     }
   };
 
-  const handleQuickCreate = (imageId: string, category: ClothingCategory) => {
-    if (!activeCharacterId) return;
-    createElementFromReference(activeCharacterId, imageId, category);
-    setShowQuickCreateMenu(null);
+  const openCreateElementModal = (image: ReferenceImage) => {
+    setCreatingFromImage(image);
+    setNewElementName('');
+    setNewElementCategory(image.tags.length > 0 ? image.tags[0] : 'top');
+    setNewElementNeedToBuy(false);
+    setShowCreateElementModal(true);
+  };
+
+  const handleCreateElement = () => {
+    if (!activeCharacterId || !creatingFromImage || !newElementName.trim()) return;
+
+    addElement(activeCharacterId, {
+      name: newElementName.trim(),
+      category: newElementCategory,
+      colors: [],
+      materials: [],
+      difficulty: 'medium',
+      referenceImages: [creatingFromImage.url],
+      notes: creatingFromImage.notes || '',
+      questions: '',
+      status: 'pending',
+      needToBuy: newElementNeedToBuy,
+      tasks: [],
+    });
+
+    setShowCreateElementModal(false);
+    setCreatingFromImage(null);
+    setSelectedImage(null);
+    setShowReferenceBoard(false);
   };
 
   if (!showReferenceBoard) return null;
@@ -174,38 +203,16 @@ export function ReferenceBoard() {
                   </div>
 
                   <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowQuickCreateMenu(showQuickCreateMenu === image.id ? null : image.id);
-                        }}
-                        className="p-1.5 bg-success/80 hover:bg-success rounded transition-colors"
-                        title="快速创建元素"
-                      >
-                        <Plus size={14} className="text-white" />
-                      </button>
-
-                      {showQuickCreateMenu === image.id && (
-                        <div
-                          className="absolute right-0 top-full mt-1 bg-primary-light border border-white/10 rounded-lg shadow-xl z-10 min-w-[120px] animate-scale-in"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <p className="text-xs text-gray-500 px-3 py-2 border-b border-white/10">
-                            创建元素为：
-                          </p>
-                          {(Object.keys(CATEGORY_LABELS) as (ClothingCategory | 'all')[]).filter(k => k !== 'all').map((category) => (
-                            <button
-                              key={category}
-                              onClick={() => handleQuickCreate(image.id, category as ClothingCategory)}
-                              className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-white/10 transition-colors"
-                            >
-                              {CATEGORY_LABELS[category]}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openCreateElementModal(image);
+                      }}
+                      className="p-1.5 bg-success/80 hover:bg-success rounded transition-colors"
+                      title="创建服装元素"
+                    >
+                      <Plus size={14} className="text-white" />
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -422,35 +429,15 @@ export function ReferenceBoard() {
               </div>
 
               <div className="flex gap-2 mt-4 pt-4 border-t border-white/10">
-                <div className="relative flex-1">
-                  <button
-                    onClick={() => setShowQuickCreateMenu(showQuickCreateMenu === 'modal' ? null : 'modal')}
-                    className="w-full py-2 bg-success hover:bg-success/80 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Plus size={16} />
-                    从此图创建服装元素
-                  </button>
-
-                  {showQuickCreateMenu === 'modal' && (
-                    <div className="absolute bottom-full left-0 right-0 mb-2 bg-primary-light border border-white/10 rounded-lg shadow-xl animate-scale-in">
-                      <p className="text-xs text-gray-500 px-3 py-2 border-b border-white/10">
-                        选择分类：
-                      </p>
-                      {(Object.keys(CATEGORY_LABELS) as (ClothingCategory | 'all')[]).filter(k => k !== 'all').map((category) => (
-                        <button
-                          key={category}
-                          onClick={() => {
-                            handleQuickCreate(selectedImage.id, category as ClothingCategory);
-                            setSelectedImage(null);
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-white/10 transition-colors"
-                        >
-                          {CATEGORY_LABELS[category]}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <button
+                  onClick={() => {
+                    openCreateElementModal(selectedImage);
+                  }}
+                  className="flex-1 py-2 bg-success hover:bg-success/80 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus size={16} />
+                  从此图创建服装元素
+                </button>
 
                 <button
                   onClick={() => {
@@ -462,6 +449,156 @@ export function ReferenceBoard() {
                   <Trash2 size={16} />
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateElementModal && creatingFromImage && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 animate-fade-in"
+          onClick={() => setShowCreateElementModal(false)}
+        >
+          <div
+            className="bg-primary-light border border-white/10 rounded-2xl p-6 w-full max-w-md animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-white">创建服装元素</h3>
+              <button
+                onClick={() => setShowCreateElementModal(false)}
+                className="p-1.5 hover:bg-white/10 rounded transition-colors"
+              >
+                <X size={18} className="text-gray-400" />
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              <div className="bg-white/5 rounded-lg overflow-hidden border border-white/10">
+                <img
+                  src={creatingFromImage.url}
+                  alt=""
+                  className="w-full h-32 object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
+                <div className="p-3">
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {creatingFromImage.tags.length > 0 ? (
+                      creatingFromImage.tags.map((tag) => {
+                        const Icon = tagIcons[tag];
+                        return (
+                          <span
+                            key={tag}
+                            className={`text-[10px] px-2 py-0.5 rounded-full border flex items-center gap-0.5 ${activeTagColors[tag]}`}
+                          >
+                            <Icon size={10} />
+                            {REFERENCE_TAG_LABELS[tag]}
+                          </span>
+                        );
+                      })
+                    ) : (
+                      <span className="text-[10px] text-gray-500">未分类</span>
+                    )}
+                  </div>
+                  {creatingFromImage.notes && (
+                    <p className="text-xs text-gray-400 line-clamp-2">
+                      备注：{creatingFromImage.notes}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1.5">元素名称 *</label>
+                <input
+                  type="text"
+                  value={newElementName}
+                  onChange={(e) => setNewElementName(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleCreateElement()}
+                  className="w-full bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-accent/50 transition-colors"
+                  placeholder="例如：发饰、外套等"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">部位分类</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(Object.keys(CATEGORY_LABELS) as (ClothingCategory | 'all')[])
+                    .filter((k) => k !== 'all')
+                    .map((category) => {
+                      const cat = category as ClothingCategory;
+                      const Icon = tagIcons[cat];
+                      const isSelected = newElementCategory === cat;
+                      return (
+                        <button
+                          key={category}
+                          onClick={() => setNewElementCategory(cat)}
+                          className={`text-xs px-3 py-2 rounded-lg border transition-all flex items-center justify-center gap-1.5 ${
+                            isSelected
+                              ? activeTagColors[cat]
+                              : `${tagColors[cat]} hover:opacity-80`
+                          }`}
+                        >
+                          <Icon size={14} />
+                          {CATEGORY_LABELS[category]}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="createElementNeedToBuy"
+                  checked={newElementNeedToBuy}
+                  onChange={(e) => setNewElementNeedToBuy(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/20 bg-white/10 text-accent focus:ring-accent/50"
+                />
+                <label htmlFor="createElementNeedToBuy" className="text-sm text-gray-300 flex items-center gap-1.5">
+                  <ShoppingCart size={14} />
+                  加入采购清单
+                </label>
+              </div>
+
+              <div className="bg-accent/10 border border-accent/20 rounded-lg p-3">
+                <p className="text-xs text-gray-400 mb-1">创建后将自动：</p>
+                <ul className="text-xs text-gray-300 space-y-1">
+                  <li className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                    把参考图加入元素的参考图列表
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                    继承参考图的备注信息
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                    关闭参考图看板并打开元素编辑面板
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-6">
+              <button
+                onClick={() => setShowCreateElementModal(false)}
+                className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 text-gray-300 rounded-lg font-medium transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleCreateElement}
+                disabled={!newElementName.trim()}
+                className="flex-1 py-2.5 bg-accent hover:bg-accent-dark disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <Plus size={16} />
+                创建元素
+              </button>
             </div>
           </div>
         </div>
