@@ -15,11 +15,10 @@ import { useStore } from '../store/useStore';
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
-type DisplayType = 'start' | 'during' | 'end' | 'single';
-
 interface ScheduledElement extends ClothingElement {
   displayDate: number;
-  displayType: DisplayType;
+  isStartDate: boolean;
+  isDueDate: boolean;
 }
 
 export function ScheduleCalendar() {
@@ -81,7 +80,8 @@ export function ScheduleCalendar() {
           withSchedule.push({
             ...element,
             displayDate: startDay,
-            displayType: 'single',
+            isStartDate: true,
+            isDueDate: true,
           });
         } else {
           const minDay = Math.min(startDay, dueDay);
@@ -90,18 +90,11 @@ export function ScheduleCalendar() {
 
           for (let i = 0; i < daysCount; i++) {
             const currentDay = minDay + i * oneDay;
-            let displayType: DisplayType;
-            if (i === 0) {
-              displayType = startDay < dueDay ? 'start' : 'end';
-            } else if (i === daysCount - 1) {
-              displayType = startDay < dueDay ? 'end' : 'start';
-            } else {
-              displayType = 'during';
-            }
             withSchedule.push({
               ...element,
               displayDate: currentDay,
-              displayType,
+              isStartDate: currentDay === startDay,
+              isDueDate: currentDay === dueDay,
             });
           }
         }
@@ -109,13 +102,15 @@ export function ScheduleCalendar() {
         withSchedule.push({
           ...element,
           displayDate: getStartOfDay(element.scheduleStartDate!),
-          displayType: 'single',
+          isStartDate: true,
+          isDueDate: false,
         });
       } else if (hasDue) {
         withSchedule.push({
           ...element,
           displayDate: getStartOfDay(element.scheduleDueDate!),
-          displayType: 'single',
+          isStartDate: false,
+          isDueDate: true,
         });
       }
     });
@@ -129,14 +124,14 @@ export function ScheduleCalendar() {
 
   const getStatusColor = (element: ScheduledElement) => {
     const status = element.status as string;
-    const isEndType = element.displayType === 'end' || element.displayType === 'single';
-    const isStartType = element.displayType === 'start' || element.displayType === 'single';
+    const { isStartDate, isDueDate } = element;
+    const isDuring = !isStartDate && !isDueDate;
 
     if (status === 'completed') {
       return 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300';
     }
 
-    if (isEndType && status !== 'completed') {
+    if (isDueDate && status !== 'completed') {
       const today = getStartOfDay(Date.now());
       if (element.displayDate < today) {
         return 'bg-red-500/20 border-red-500/50 text-red-300';
@@ -144,12 +139,16 @@ export function ScheduleCalendar() {
       return 'bg-orange-500/20 border-orange-500/50 text-orange-300';
     }
 
-    if (element.needToBuy && isStartType) {
+    if (element.needToBuy && isStartDate) {
       return 'bg-amber-500/20 border-amber-500/50 text-amber-300';
     }
 
     if (status === 'in_progress') {
       return 'bg-blue-500/20 border-blue-500/50 text-blue-300';
+    }
+
+    if (isDuring) {
+      return 'bg-white/5 border-white/10 text-gray-400';
     }
 
     return 'bg-white/10 border-white/20 text-gray-300';
@@ -310,18 +309,17 @@ export function ScheduleCalendar() {
                     <p className="text-xs text-gray-600 text-center py-2">暂无排期</p>
                   ) : (
                     elements.map((element, idx) => {
-                      const isStartType = element.displayType === 'start' || element.displayType === 'single';
-                      const isEndType = element.displayType === 'end' || element.displayType === 'single';
+                      const { isStartDate, isDueDate } = element;
+                      const isDuring = !isStartDate && !isDueDate;
                       const status = element.status as string;
-                      const isOverdue = isEndType && status !== 'completed' && element.displayDate < getStartOfDay(Date.now());
-                      const isDuring = element.displayType === 'during';
+                      const isOverdue = isDueDate && status !== 'completed' && element.displayDate < getStartOfDay(Date.now());
 
                       return (
                         <div
                           key={`${element.id}-${idx}`}
                           onClick={() => handleElementClick(element.id)}
                           className={`p-3 rounded-lg border cursor-pointer transition-all hover:scale-[1.02] ${
-                            isDuring ? 'opacity-75' : ''
+                            isDuring ? 'opacity-70' : ''
                           } ${getStatusColor(element)}`}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -341,7 +339,7 @@ export function ScheduleCalendar() {
                                 </span>
                               </div>
                               <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                {isStartType && (
+                                {isStartDate && (
                                   <span className="text-xs px-1.5 py-0.5 bg-white/10 rounded">
                                     开始
                                   </span>
@@ -351,13 +349,13 @@ export function ScheduleCalendar() {
                                     进行中
                                   </span>
                                 )}
-                                {isEndType && (
+                                {isDueDate && (
                                   <span
                                     className={`text-xs px-1.5 py-0.5 rounded ${
-                                      isOverdue
-                                        ? 'bg-red-500/30 text-red-300'
-                                        : 'bg-white/10'
-                                    }`}
+                                    isOverdue
+                                      ? 'bg-red-500/30 text-red-300'
+                                      : 'bg-white/10'
+                                  }`}
                                   >
                                     {isOverdue ? '已逾期' : '截止'}
                                   </span>
@@ -368,7 +366,7 @@ export function ScheduleCalendar() {
                                   </span>
                                 )}
                               </div>
-                              {element.scheduleReminder && (isStartType || isEndType) && (
+                              {element.scheduleReminder && (isStartDate || isDueDate) && (
                                 <div className="flex items-start gap-1 mt-2 text-xs opacity-80">
                                   <Bell size={10} className="mt-0.5 flex-shrink-0" />
                                   <span className="line-clamp-2">
