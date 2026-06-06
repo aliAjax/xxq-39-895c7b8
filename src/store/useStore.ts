@@ -105,7 +105,7 @@ export const useStore = create<StoreState>((set, get) => ({
   newElementFromReference: null,
   showCharacterWizard: false,
 
-  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false }),
+  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showProjectOverview: false }),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
   setSelectedElement: (id) => set({ selectedElementId: id, newElementFromReference: null }),
   setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false }),

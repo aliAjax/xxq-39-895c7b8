@@ -127,9 +127,16 @@ export function Sidebar() {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 pb-4">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-          角色列表
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            角色列表
+          </h2>
+          {showProjectOverview && (
+            <span className="text-[10px] text-accent bg-accent/10 px-2 py-0.5 rounded">
+              点击进入工作区
+            </span>
+          )}
+        </div>
         <div className="space-y-2">
           {characters.map((character, index) => (
             <div
@@ -140,11 +147,20 @@ export function Sidebar() {
               <div
                 onClick={() => setActiveCharacter(character.id)}
                 className={`relative p-4 rounded-lg cursor-pointer transition-all duration-200 ${
-                  activeCharacterId === character.id
-                    ? 'bg-accent/20 border border-accent/50'
-                    : 'bg-white/5 hover:bg-white/10 border border-transparent'
+                  showProjectOverview
+                    ? activeCharacterId === character.id
+                      ? 'bg-accent/10 border border-accent/30 hover:bg-accent/20'
+                      : 'bg-white/5 hover:bg-white/10 border border-transparent hover:border-accent/30'
+                    : activeCharacterId === character.id
+                      ? 'bg-accent/20 border border-accent/50'
+                      : 'bg-white/5 hover:bg-white/10 border border-transparent'
                 }`}
               >
+                {showProjectOverview && (
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[10px] text-accent">→ 进入</span>
+                  </div>
+                )}
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-white truncate">
