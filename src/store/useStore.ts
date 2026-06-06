@@ -1,18 +1,9 @@
 import { create } from 'zustand';
-import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, BudgetSummary, BudgetItem, CharacterStats, TaskTemplate, AppSettings, DEFAULT_TASK_TEMPLATES, SavedView, OverviewFilters } from '../types';
-import { loadFromStorage, saveToStorage, loadSettings, saveSettings, loadViews, saveViews } from '../utils/storage';
-import { calculateCharacterBudget, calculateProjectBudget } from '../utils/budgetUtils';
-import { sampleCharacters } from '../data/sampleData';
-
-const DEFAULT_CATEGORIES: ClothingCategory[] = ['head', 'top', 'bottom', 'shoes', 'accessory', 'weapon'];
-
-const DEFAULT_BUDGET: BudgetItem = {
-  materialCost: 0,
-  toolCost: 0,
-  outsourcingCost: 0,
-  purchased: false,
-  notes: '',
-};
+import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, BudgetSummary, BudgetItem, CharacterStats, TaskTemplate, AppSettings, SavedView, OverviewFilters } from '../types';
+import { useCharacterStore } from './useCharacterStore';
+import { useUIStore } from './useUIStore';
+import { useTaskTemplateStore } from './useTaskTemplateStore';
+import { useViewStore } from './useViewStore';
 
 interface StoreState {
   characters: Character[];
@@ -102,69 +93,139 @@ interface StoreState {
   updateSavedView: (viewId: string, updates: Partial<SavedView>) => void;
 }
 
-const initializeData = (): Character[] => {
-  const stored = loadFromStorage();
-  if (stored && stored.length > 0) {
-    return stored;
-  }
-  return sampleCharacters;
+const getCombinedState = () => {
+  const charState = useCharacterStore.getState();
+  const uiState = useUIStore.getState();
+  const tplState = useTaskTemplateStore.getState();
+  const viewState = useViewStore.getState();
+
+  return {
+    characters: charState.characters,
+    activeCharacterId: charState.activeCharacterId,
+    selectedCategory: charState.selectedCategory,
+    selectedElementId: charState.selectedElementId,
+    newElementFromReference: charState.newElementFromReference,
+
+    showShoppingList: uiState.showShoppingList,
+    showReferenceBoard: uiState.showReferenceBoard,
+    showColorPalette: uiState.showColorPalette,
+    showBudgetPanel: uiState.showBudgetPanel,
+    showPrintSpecification: uiState.showPrintSpecification,
+    showScheduleCalendar: uiState.showScheduleCalendar,
+    showProjectOverview: uiState.showProjectOverview,
+    showCharacterWizard: uiState.showCharacterWizard,
+    showSettings: uiState.showSettings,
+    showExportCenter: uiState.showExportCenter,
+    showMaterialSummary: uiState.showMaterialSummary,
+
+    settings: tplState.settings,
+    savedViews: viewState.savedViews,
+  };
 };
 
-export const useStore = create<StoreState>((set, get) => ({
-  characters: initializeData(),
-  activeCharacterId: null,
-  selectedCategory: 'all',
-  selectedElementId: null,
-  showShoppingList: false,
-  showReferenceBoard: false,
-  showColorPalette: false,
-  showBudgetPanel: false,
-  showPrintSpecification: false,
-  showScheduleCalendar: false,
-  showProjectOverview: false,
-  newElementFromReference: null,
-  showCharacterWizard: false,
-  showSettings: false,
-  settings: loadSettings(),
-  savedViews: loadViews(),
-  showExportCenter: false,
-  showMaterialSummary: false,
+export const useStore = create<StoreState>((set) => ({
+  ...getCombinedState(),
 
-  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false, showProjectOverview: false, showMaterialSummary: false }),
-  setSelectedCategory: (category) => set({ selectedCategory: category }),
-  setSelectedElement: (id) => set({ selectedElementId: id, newElementFromReference: null, showSettings: false }),
-  setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false }),
-  setShowReferenceBoard: (show) => set({ showReferenceBoard: show, showShoppingList: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false }),
-  setShowColorPalette: (show) => set({ showColorPalette: show, showShoppingList: false, showReferenceBoard: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false }),
-  setShowBudgetPanel: (show) => set({ showBudgetPanel: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false }),
-  setShowPrintSpecification: (show) => set({ showPrintSpecification: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showScheduleCalendar: false, showSettings: false }),
-  setShowScheduleCalendar: (show) => set({ showScheduleCalendar: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showSettings: false }),
-  setShowProjectOverview: (show) => set({ showProjectOverview: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false, showMaterialSummary: false, selectedElementId: null }),
-  setNewElementFromReference: (data) => set({ newElementFromReference: data }),
-  setShowCharacterWizard: (show) => set({ showCharacterWizard: show }),
-  setShowSettings: (show) => set({ showSettings: show, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showProjectOverview: false, showMaterialSummary: false }),
-  setShowExportCenter: (show) => set({ showExportCenter: show }),
-  setShowMaterialSummary: (show) => set({ showMaterialSummary: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false, showProjectOverview: false, selectedElementId: null }),
+  setActiveCharacter: (id) => {
+    useCharacterStore.getState().setActiveCharacter(id);
+    useUIStore.getState().closeAllPanels();
+    set(getCombinedState());
+  },
+
+  setSelectedCategory: (category) => {
+    useCharacterStore.getState().setSelectedCategory(category);
+    set({ selectedCategory: category });
+  },
+
+  setSelectedElement: (id) => {
+    useCharacterStore.getState().setSelectedElement(id);
+    useUIStore.getState().setShowSettings(false);
+    set(getCombinedState());
+  },
+
+  setNewElementFromReference: (data) => {
+    useCharacterStore.getState().setNewElementFromReference(data);
+    set({ newElementFromReference: data });
+  },
+
+  setShowShoppingList: (show) => {
+    useUIStore.getState().setShowShoppingList(show);
+    set(getCombinedState());
+  },
+
+  setShowReferenceBoard: (show) => {
+    useUIStore.getState().setShowReferenceBoard(show);
+    set(getCombinedState());
+  },
+
+  setShowColorPalette: (show) => {
+    useUIStore.getState().setShowColorPalette(show);
+    set(getCombinedState());
+  },
+
+  setShowBudgetPanel: (show) => {
+    useUIStore.getState().setShowBudgetPanel(show);
+    set(getCombinedState());
+  },
+
+  setShowPrintSpecification: (show) => {
+    useUIStore.getState().setShowPrintSpecification(show);
+    set(getCombinedState());
+  },
+
+  setShowScheduleCalendar: (show) => {
+    useUIStore.getState().setShowScheduleCalendar(show);
+    set(getCombinedState());
+  },
+
+  setShowProjectOverview: (show) => {
+    useUIStore.getState().setShowProjectOverview(show);
+    if (show) {
+      useCharacterStore.getState().setSelectedElement(null);
+    }
+    set(getCombinedState());
+  },
+
+  setShowCharacterWizard: (show) => {
+    useUIStore.getState().setShowCharacterWizard(show);
+    set({ showCharacterWizard: show });
+  },
+
+  setShowSettings: (show) => {
+    useUIStore.getState().setShowSettings(show);
+    if (show) {
+      useCharacterStore.getState().setSelectedElement(null);
+    }
+    set(getCombinedState());
+  },
+
+  setShowExportCenter: (show) => {
+    useUIStore.getState().setShowExportCenter(show);
+    set({ showExportCenter: show });
+  },
+
+  setShowMaterialSummary: (show) => {
+    useUIStore.getState().setShowMaterialSummary(show);
+    if (show) {
+      useCharacterStore.getState().setSelectedElement(null);
+    }
+    set(getCombinedState());
+  },
 
   updateTaskTemplates: (templates) => {
-    set((state) => {
-      const newSettings = { ...state.settings, taskTemplates: templates };
-      saveSettings(newSettings);
-      return { settings: newSettings };
-    });
+    useTaskTemplateStore.getState().updateTaskTemplates(templates);
+    set({ settings: useTaskTemplateStore.getState().settings });
   },
 
   resetTaskTemplates: () => {
-    set((state) => {
-      const newSettings = { ...state.settings, taskTemplates: [...DEFAULT_TASK_TEMPLATES] };
-      saveSettings(newSettings);
-      return { settings: newSettings };
-    });
+    useTaskTemplateStore.getState().resetTaskTemplates();
+    set({ settings: useTaskTemplateStore.getState().settings });
   },
 
   applyTaskTemplates: (characterId, elementId) => {
-    const state = get();
-    const templates = [...state.settings.taskTemplates].sort((a, b) => a.order - b.order);
+    const charStore = useCharacterStore.getState();
+    const tplStore = useTaskTemplateStore.getState();
+    const templates = [...tplStore.settings.taskTemplates].sort((a, b) => a.order - b.order);
     const now = Date.now();
     const newTasks: ProductionTask[] = templates.map((tpl, index) => ({
       id: `task-${now}-${index}`,
@@ -174,32 +235,23 @@ export const useStore = create<StoreState>((set, get) => ({
       createdAt: now,
       updatedAt: now,
     }));
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              elements: char.elements.map((el) =>
-                el.id === elementId
-                  ? { ...el, tasks: newTasks, updatedAt: now }
-                  : el
-              ),
-              updatedAt: now,
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
-  },
 
-  addMissingTasks: (characterId, elementId) => {
-    const state = get();
-    const character = state.characters.find((c) => c.id === characterId);
+    const character = charStore.characters.find((c) => c.id === characterId);
     const element = character?.elements.find((e) => e.id === elementId);
     if (!element) return;
 
-    const templates = [...state.settings.taskTemplates].sort((a, b) => a.order - b.order);
+    charStore.updateElement(characterId, elementId, { tasks: newTasks, updatedAt: now });
+    set({ characters: useCharacterStore.getState().characters });
+  },
+
+  addMissingTasks: (characterId, elementId) => {
+    const charStore = useCharacterStore.getState();
+    const tplStore = useTaskTemplateStore.getState();
+    const character = charStore.characters.find((c) => c.id === characterId);
+    const element = character?.elements.find((e) => e.id === elementId);
+    if (!element) return;
+
+    const templates = [...tplStore.settings.taskTemplates].sort((a, b) => a.order - b.order);
     const existingTaskTypes = new Set(element.tasks.map((t) => t.type));
     const now = Date.now();
     const missingTasks = templates
@@ -215,737 +267,231 @@ export const useStore = create<StoreState>((set, get) => ({
 
     if (missingTasks.length === 0) return;
 
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              elements: char.elements.map((el) =>
-                el.id === elementId
-                  ? { ...el, tasks: [...el.tasks, ...missingTasks], updatedAt: now }
-                  : el
-              ),
-              updatedAt: now,
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
+    charStore.updateElement(characterId, elementId, {
+      tasks: [...element.tasks, ...missingTasks],
+      updatedAt: now,
     });
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   addCharacter: () => {
-    const now = Date.now();
-    const newCharacter: Character = {
-      id: `char-${now}`,
-      name: '新角色',
-      source: '',
-      description: '',
-      elements: [],
-      referenceImages: [],
-      colorPalette: {
-        colors: [],
-        createdAt: now,
-        updatedAt: now,
-      },
-      createdAt: now,
-      updatedAt: now,
-    };
-    set((state) => {
-      const newCharacters = [...state.characters, newCharacter];
-      saveToStorage(newCharacters);
-      return {
-        characters: newCharacters,
-        activeCharacterId: newCharacter.id,
-      };
-    });
+    useCharacterStore.getState().addCharacter();
+    set(getCombinedState());
   },
 
-  createCharacterWithData: ({ name, source, description, autoGenerateElements }) => {
-    const now = Date.now();
-    const elements: ClothingElement[] = autoGenerateElements
-      ? DEFAULT_CATEGORIES.map((category, index) => ({
-          id: `el-${now}-${index}`,
-          name: '',
-          category,
-          colors: [],
-          materials: [],
-          difficulty: 'medium',
-          referenceImages: [],
-          notes: '',
-          questions: '',
-          status: 'pending',
-          needToBuy: false,
-          tasks: [],
-          createdAt: now,
-          updatedAt: now,
-        }))
-      : [];
-
-    const newCharacter: Character = {
-      id: `char-${now}`,
-      name: name.trim() || '新角色',
-      source: source.trim(),
-      description: description.trim(),
-      elements,
-      referenceImages: [],
-      colorPalette: {
-        colors: [],
-        createdAt: now,
-        updatedAt: now,
-      },
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    set((state) => {
-      const newCharacters = [...state.characters, newCharacter];
-      saveToStorage(newCharacters);
-      return {
-        characters: newCharacters,
-        activeCharacterId: newCharacter.id,
-        showCharacterWizard: false,
-        selectedCategory: 'all',
-      };
-    });
+  createCharacterWithData: (data) => {
+    useCharacterStore.getState().createCharacterWithData(data);
+    useUIStore.getState().setShowCharacterWizard(false);
+    set(getCombinedState());
   },
 
   updateCharacter: (id, updates) => {
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === id ? { ...char, ...updates, updatedAt: Date.now() } : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().updateCharacter(id, updates);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   deleteCharacter: (id) => {
-    set((state) => {
-      const newCharacters = state.characters.filter((char) => char.id !== id);
-      saveToStorage(newCharacters);
-      return {
-        characters: newCharacters,
-        activeCharacterId: state.activeCharacterId === id ? null : state.activeCharacterId,
-      };
-    });
+    useCharacterStore.getState().deleteCharacter(id);
+    set(getCombinedState());
   },
 
   addElement: (characterId, element) => {
-    const newElement: ClothingElement = {
-      ...element,
-      id: `el-${Date.now()}`,
-      tasks: element.tasks || [],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? { ...char, elements: [...char.elements, newElement], updatedAt: Date.now() }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters, selectedElementId: newElement.id };
-    });
+    useCharacterStore.getState().addElement(characterId, element);
+    set(getCombinedState());
   },
 
   updateElement: (characterId, elementId, updates) => {
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              elements: char.elements.map((el) =>
-                el.id === elementId ? { ...el, ...updates, updatedAt: Date.now() } : el
-              ),
-              updatedAt: Date.now(),
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().updateElement(characterId, elementId, updates);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   deleteElement: (characterId, elementId) => {
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              elements: char.elements.filter((el) => el.id !== elementId),
-              updatedAt: Date.now(),
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return {
-        characters: newCharacters,
-        selectedElementId: state.selectedElementId === elementId ? null : state.selectedElementId,
-      };
-    });
+    useCharacterStore.getState().deleteElement(characterId, elementId);
+    set(getCombinedState());
   },
 
   addReferenceImage: (characterId, image) => {
-    const newImage: ReferenceImage = {
-      ...image,
-      id: `ref-${Date.now()}`,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? { ...char, referenceImages: [...char.referenceImages, newImage], updatedAt: Date.now() }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().addReferenceImage(characterId, image);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   updateReferenceImage: (characterId, imageId, updates) => {
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              referenceImages: char.referenceImages.map((img) =>
-                img.id === imageId ? { ...img, ...updates, updatedAt: Date.now() } : img
-              ),
-              updatedAt: Date.now(),
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().updateReferenceImage(characterId, imageId, updates);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   deleteReferenceImage: (characterId, imageId) => {
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              referenceImages: char.referenceImages.filter((img) => img.id !== imageId),
-              updatedAt: Date.now(),
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().deleteReferenceImage(characterId, imageId);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   toggleReferenceTag: (characterId, imageId, tag) => {
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              referenceImages: char.referenceImages.map((img) =>
-                img.id === imageId
-                  ? {
-                      ...img,
-                      tags: img.tags.includes(tag)
-                        ? img.tags.filter((t) => t !== tag)
-                        : [...img.tags, tag],
-                      updatedAt: Date.now(),
-                    }
-                  : img
-              ),
-              updatedAt: Date.now(),
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().toggleReferenceTag(characterId, imageId, tag);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   createElementFromReference: (characterId, imageId, category) => {
-    const state = get();
-    const character = state.characters.find((c) => c.id === characterId);
-    const image = character?.referenceImages.find((img) => img.id === imageId);
-    if (!image) return;
-
-    set({
-      newElementFromReference: { imageUrl: image.url, category },
-      selectedElementId: 'new',
-      showReferenceBoard: false,
-    });
+    useCharacterStore.getState().createElementFromReference(characterId, imageId, category);
+    useUIStore.getState().setShowReferenceBoard(false);
+    set(getCombinedState());
   },
 
   addPaletteColor: (characterId, color) => {
-    const now = Date.now();
-    const newColor: PaletteColor = {
-      ...color,
-      id: `palette-${now}`,
-      createdAt: now,
-      updatedAt: now,
-    };
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              colorPalette: {
-                ...char.colorPalette,
-                colors: [...char.colorPalette.colors, newColor],
-                updatedAt: now,
-              },
-              updatedAt: now,
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().addPaletteColor(characterId, color);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   updatePaletteColor: (characterId, colorId, updates) => {
-    const now = Date.now();
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              colorPalette: {
-                ...char.colorPalette,
-                colors: char.colorPalette.colors.map((c) =>
-                  c.id === colorId ? { ...c, ...updates, updatedAt: now } : c
-                ),
-                updatedAt: now,
-              },
-              updatedAt: now,
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().updatePaletteColor(characterId, colorId, updates);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   deletePaletteColor: (characterId, colorId) => {
-    const now = Date.now();
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              colorPalette: {
-                ...char.colorPalette,
-                colors: char.colorPalette.colors.filter((c) => c.id !== colorId),
-                updatedAt: now,
-              },
-              updatedAt: now,
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().deletePaletteColor(characterId, colorId);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   autoGeneratePalette: (characterId) => {
-    const state = get();
-    const character = state.characters.find((c) => c.id === characterId);
-    if (!character) return;
-
-    const allColors: string[] = [];
-    character.elements.forEach((el) => {
-      el.colors.forEach((color) => {
-        if (!allColors.includes(color)) {
-          allColors.push(color);
-        }
-      });
-    });
-
-    if (allColors.length === 0) return;
-
-    const existingColors = character.colorPalette?.colors || [];
-    const existingColorValues = new Set(existingColors.map((c) => c.color));
-
-    const added: PaletteColor[] = [];
-    let primaryCount = existingColors.filter((c) => c.category === 'primary').length;
-    let secondaryCount = existingColors.filter((c) => c.category === 'secondary').length;
-
-    allColors.forEach((color) => {
-      if (existingColorValues.has(color)) return;
-      const now = Date.now();
-      let category: 'primary' | 'secondary' | 'accent';
-      if (primaryCount === 0) {
-        category = 'primary';
-        primaryCount++;
-      } else if (secondaryCount < 2) {
-        category = 'secondary';
-        secondaryCount++;
-      } else {
-        category = 'accent';
-      }
-      added.push({
-        id: `palette-${now}-${added.length}`,
-        color,
-        name: `颜色 ${existingColors.length + added.length + 1}`,
-        category,
-        createdAt: now,
-        updatedAt: now,
-      });
-    });
-
-    if (added.length === 0) return;
-
-    const merged = [...existingColors, ...added];
-    const now = Date.now();
-
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              colorPalette: {
-                colors: merged,
-                createdAt: char.colorPalette?.createdAt || now,
-                updatedAt: now,
-              },
-              updatedAt: now,
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().autoGeneratePalette(characterId);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   getElementsUsingColor: (characterId, color) => {
-    const state = get();
-    const character = state.characters.find((c) => c.id === characterId);
-    if (!character) return [];
-    return character.elements.filter((el) => el.colors.includes(color));
-  },
-
-  getActiveCharacter: () => {
-    const state = get();
-    return state.characters.find((char) => char.id === state.activeCharacterId);
-  },
-
-  getFilteredElements: () => {
-    const state = get();
-    const character = state.characters.find((char) => char.id === state.activeCharacterId);
-    if (!character) return [];
-    if (state.selectedCategory === 'all') return character.elements;
-    return character.elements.filter((el) => el.category === state.selectedCategory);
-  },
-
-  getCompletionRate: () => {
-    const state = get();
-    const character = state.characters.find((char) => char.id === state.activeCharacterId);
-    if (!character || character.elements.length === 0) return 0;
-    const completed = character.elements.filter(
-      (el) => el.status === 'completed'
-    ).length;
-    return Math.round((completed / character.elements.length) * 100);
+    return useCharacterStore.getState().getElementsUsingColor(characterId, color);
   },
 
   addTask: (characterId, elementId, task) => {
-    const now = Date.now();
-    const newTask: ProductionTask = {
-      ...task,
-      id: `task-${now}`,
-      createdAt: now,
-      updatedAt: now,
-    };
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              elements: char.elements.map((el) =>
-                el.id === elementId
-                  ? { ...el, tasks: [...el.tasks, newTask], updatedAt: now }
-                  : el
-              ),
-              updatedAt: now,
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().addTask(characterId, elementId, task);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   updateTask: (characterId, elementId, taskId, updates) => {
-    const now = Date.now();
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              elements: char.elements.map((el) =>
-                el.id === elementId
-                  ? {
-                      ...el,
-                      tasks: el.tasks.map((t) =>
-                        t.id === taskId ? { ...t, ...updates, updatedAt: now } : t
-                      ),
-                      updatedAt: now,
-                    }
-                  : el
-              ),
-              updatedAt: now,
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().updateTask(characterId, elementId, taskId, updates);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   deleteTask: (characterId, elementId, taskId) => {
-    const now = Date.now();
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              elements: char.elements.map((el) =>
-                el.id === elementId
-                  ? { ...el, tasks: el.tasks.filter((t) => t.id !== taskId), updatedAt: now }
-                  : el
-              ),
-              updatedAt: now,
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().deleteTask(characterId, elementId, taskId);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   toggleTaskComplete: (characterId, elementId, taskId) => {
-    const now = Date.now();
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              elements: char.elements.map((el) =>
-                el.id === elementId
-                  ? {
-                      ...el,
-                      tasks: el.tasks.map((t) =>
-                        t.id === taskId ? { ...t, completed: !t.completed, updatedAt: now } : t
-                      ),
-                      updatedAt: now,
-                    }
-                  : el
-              ),
-              updatedAt: now,
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().toggleTaskComplete(characterId, elementId, taskId);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   getTaskProgress: (element) => {
-    const tasks = element.tasks || [];
-    if (tasks.length === 0) return 0;
-    const completed = tasks.filter((t) => t.completed).length;
-    return Math.round((completed / tasks.length) * 100);
+    return useCharacterStore.getState().getTaskProgress(element);
+  },
+
+  getActiveCharacter: () => {
+    return useCharacterStore.getState().getActiveCharacter();
+  },
+
+  getFilteredElements: () => {
+    return useCharacterStore.getState().getFilteredElements();
+  },
+
+  getCompletionRate: () => {
+    return useCharacterStore.getState().getCompletionRate();
   },
 
   getFilteredReferenceImages: (tagFilter) => {
-    const state = get();
-    const character = state.characters.find((char) => char.id === state.activeCharacterId);
-    if (!character) return [];
-    if (tagFilter === 'all') return character.referenceImages;
-    return character.referenceImages.filter((img) => img.tags.includes(tagFilter));
+    return useCharacterStore.getState().getFilteredReferenceImages(tagFilter);
   },
 
   getBudgetSummary: () => {
-    const state = get();
-    const character = state.characters.find((char) => char.id === state.activeCharacterId);
-    if (!character) return null;
-    return calculateCharacterBudget(character);
+    return useCharacterStore.getState().getBudgetSummary();
   },
 
   getCharacterBudgetSummary: (characterId) => {
-    const state = get();
-    const character = state.characters.find((char) => char.id === characterId);
-    if (!character) return null;
-    return calculateCharacterBudget(character);
+    return useCharacterStore.getState().getCharacterBudgetSummary(characterId);
   },
 
   getProjectBudgetSummary: () => {
-    const state = get();
-    return calculateProjectBudget(state.characters);
+    return useCharacterStore.getState().getProjectBudgetSummary();
   },
 
   updateElementBudget: (characterId, elementId, budget) => {
-    const now = Date.now();
-    set((state) => {
-      const newCharacters = state.characters.map((char) =>
-        char.id === characterId
-          ? {
-              ...char,
-              elements: char.elements.map((el) =>
-                el.id === elementId
-                  ? {
-                      ...el,
-                      budget: { ...DEFAULT_BUDGET, ...el.budget, ...budget },
-                      updatedAt: now,
-                    }
-                  : el
-              ),
-              updatedAt: now,
-            }
-          : char
-      );
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().updateElementBudget(characterId, elementId, budget);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   toggleElementPurchased: (characterId, elementId) => {
-    const state = get();
-    const character = state.characters.find((c) => c.id === characterId);
-    const element = character?.elements.find((e) => e.id === elementId);
-    const currentBudget = element?.budget || DEFAULT_BUDGET;
-    state.updateElementBudget(characterId, elementId, { purchased: !currentBudget.purchased });
+    useCharacterStore.getState().toggleElementPurchased(characterId, elementId);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   replaceCharacters: (characters) => {
-    saveToStorage(characters);
-    set({
-      characters,
-      activeCharacterId: characters.length > 0 ? characters[0].id : null,
-      selectedElementId: null,
-    });
+    useCharacterStore.getState().replaceCharacters(characters);
+    set(getCombinedState());
   },
 
   getCharacterStats: (characterId) => {
-    const state = get();
-    const character = state.characters.find((c) => c.id === characterId);
-    if (!character) return null;
-
-    const elements = character.elements;
-    const totalElements = elements.length;
-    const completedCount = elements.filter((el) => el.status === 'completed').length;
-    const completionRate = totalElements > 0 ? Math.round((completedCount / totalElements) * 100) : 0;
-    const pendingPurchaseCount = elements.filter((el) => el.needToBuy && el.status !== 'completed').length;
-    const inProgressCount = elements.filter((el) => el.status === 'in_progress').length;
-    const expertDifficultyCount = elements.filter((el) => el.difficulty === 'expert').length;
-    const hasUnansweredQuestions = elements.some((el) => el.questions && el.questions.trim() !== '' && el.status !== 'completed');
-    const lastUpdated = character.updatedAt;
-
-    return {
-      totalElements,
-      completedCount,
-      completionRate,
-      pendingPurchaseCount,
-      inProgressCount,
-      expertDifficultyCount,
-      hasUnansweredQuestions,
-      lastUpdated,
-    };
+    return useCharacterStore.getState().getCharacterStats(characterId);
   },
 
   getAllSources: () => {
-    const state = get();
-    const sources = new Set<string>();
-    state.characters.forEach((char) => {
-      if (char.source && char.source.trim() !== '') {
-        sources.add(char.source.trim());
-      }
-    });
-    return Array.from(sources);
+    return useCharacterStore.getState().getAllSources();
   },
 
   bulkMarkElementsPurchased: (items, purchased) => {
-    const now = Date.now();
-    const itemMap = new Map<string, Set<string>>();
-    items.forEach(({ characterId, elementId }) => {
-      if (!itemMap.has(characterId)) {
-        itemMap.set(characterId, new Set());
-      }
-      itemMap.get(characterId)!.add(elementId);
-    });
-
-    set((state) => {
-      const newCharacters = state.characters.map((char) => {
-        const elementIds = itemMap.get(char.id);
-        if (!elementIds) return char;
-
-        let hasChanges = false;
-        const newElements = char.elements.map((el) => {
-          if (!elementIds.has(el.id)) return el;
-
-          const currentBudget = el.budget || DEFAULT_BUDGET;
-          if (currentBudget.purchased === purchased) return el;
-
-          hasChanges = true;
-          return {
-            ...el,
-            budget: { ...currentBudget, purchased },
-            updatedAt: now,
-          };
-        });
-
-        if (!hasChanges) return char;
-
-        return {
-          ...char,
-          elements: newElements,
-          updatedAt: now,
-        };
-      });
-
-      saveToStorage(newCharacters);
-      return { characters: newCharacters };
-    });
+    useCharacterStore.getState().bulkMarkElementsPurchased(items, purchased);
+    set({ characters: useCharacterStore.getState().characters });
   },
 
   addSavedView: (name, filters) => {
-    const now = Date.now();
-    const newView: SavedView = {
-      id: `view-${now}`,
-      name: name.trim(),
-      filters: { ...filters },
-      createdAt: now,
-    };
-    set((state) => {
-      const newViews = [...state.savedViews, newView];
-      saveViews(newViews);
-      return { savedViews: newViews };
-    });
+    useViewStore.getState().addSavedView(name, filters);
+    set({ savedViews: useViewStore.getState().savedViews });
   },
 
   deleteSavedView: (viewId) => {
-    set((state) => {
-      const newViews = state.savedViews.filter((v) => v.id !== viewId);
-      saveViews(newViews);
-      return { savedViews: newViews };
-    });
+    useViewStore.getState().deleteSavedView(viewId);
+    set({ savedViews: useViewStore.getState().savedViews });
   },
 
   updateSavedView: (viewId, updates) => {
-    set((state) => {
-      const newViews = state.savedViews.map((v) =>
-        v.id === viewId ? { ...v, ...updates } : v
-      );
-      saveViews(newViews);
-      return { savedViews: newViews };
-    });
+    useViewStore.getState().updateSavedView(viewId, updates);
+    set({ savedViews: useViewStore.getState().savedViews });
   },
 }));
 
-if (typeof window !== 'undefined') {
-  const state = useStore.getState();
-  if (state.characters.length > 0 && !state.activeCharacterId) {
-    useStore.setState({ activeCharacterId: state.characters[0].id });
-  }
-}
+useCharacterStore.subscribe(() => {
+  const charState = useCharacterStore.getState();
+  useStore.setState({
+    characters: charState.characters,
+    activeCharacterId: charState.activeCharacterId,
+    selectedCategory: charState.selectedCategory,
+    selectedElementId: charState.selectedElementId,
+    newElementFromReference: charState.newElementFromReference,
+  });
+});
+
+useUIStore.subscribe(() => {
+  const uiState = useUIStore.getState();
+  useStore.setState({
+    showShoppingList: uiState.showShoppingList,
+    showReferenceBoard: uiState.showReferenceBoard,
+    showColorPalette: uiState.showColorPalette,
+    showBudgetPanel: uiState.showBudgetPanel,
+    showPrintSpecification: uiState.showPrintSpecification,
+    showScheduleCalendar: uiState.showScheduleCalendar,
+    showProjectOverview: uiState.showProjectOverview,
+    showCharacterWizard: uiState.showCharacterWizard,
+    showSettings: uiState.showSettings,
+    showExportCenter: uiState.showExportCenter,
+    showMaterialSummary: uiState.showMaterialSummary,
+  });
+});
+
+useTaskTemplateStore.subscribe(() => {
+  useStore.setState({
+    settings: useTaskTemplateStore.getState().settings,
+  });
+});
+
+useViewStore.subscribe(() => {
+  useStore.setState({
+    savedViews: useViewStore.getState().savedViews,
+  });
+});
