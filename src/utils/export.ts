@@ -5,7 +5,7 @@ export function exportToJSON(character: Character): void {
   const dataStr = JSON.stringify(character, null, 2);
   const dataBlob = new Blob([dataStr], { type: 'application/json' });
   const url = URL.createObjectURL(dataBlob);
-  
+
   const link = document.createElement('a');
   link.href = url;
   link.download = `${character.name}-服装设定.json`;
@@ -25,7 +25,7 @@ export async function exportToImage(elementId: string, filename: string, backgro
       scale: 2,
       useCORS: true,
     });
-    
+
     const url = canvas.toDataURL('image/png');
     const link = document.createElement('a');
     link.href = url;
@@ -78,11 +78,11 @@ export function exportShoppingList(character: Character): void {
     '',
     `生成时间: ${new Date().toLocaleString()}`,
   ];
-  
+
   const text = lines.join('\n');
   const dataBlob = new Blob([text], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(dataBlob);
-  
+
   const link = document.createElement('a');
   link.href = url;
   link.download = `${character.name}-采购清单.txt`;

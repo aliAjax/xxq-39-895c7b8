@@ -61,8 +61,8 @@ export function ElementCard({ element, index }: ElementCardProps) {
 
       <div className="flex items-start gap-3 mb-4">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-          isPlaceholder 
-            ? 'bg-white/10' 
+          isPlaceholder
+            ? 'bg-white/10'
             : 'bg-gradient-to-br from-accent/30 to-accent/10'
         }`}>
           <Icon size={20} className={isPlaceholder ? 'text-gray-400' : 'text-accent'} />

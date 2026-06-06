@@ -36,8 +36,8 @@ export function BudgetPanel() {
 
   if (!showBudgetPanel || !character || !budgetSummary) return null;
 
-  const progress = budgetSummary.totalEstimated > 0 
-    ? (budgetSummary.totalPurchased / budgetSummary.totalEstimated) * 100 
+  const progress = budgetSummary.totalEstimated > 0
+    ? (budgetSummary.totalPurchased / budgetSummary.totalEstimated) * 100
     : 0;
 
   const categoriesWithBudget = Object.entries(budgetSummary.categoryBreakdown)
@@ -119,15 +119,15 @@ export function BudgetPanel() {
               </h3>
               <div className="space-y-3">
                 {categoriesWithBudget.map(([category, data]) => {
-                  const percentage = budgetSummary.totalEstimated > 0 
-                    ? (data.estimated / budgetSummary.totalEstimated) * 100 
+                  const percentage = budgetSummary.totalEstimated > 0
+                    ? (data.estimated / budgetSummary.totalEstimated) * 100
                     : 0;
                   const Icon = categoryIcons[category as ClothingCategory];
                   return (
                     <div key={category} className="bg-white/5 rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <div 
+                          <div
                             className="w-8 h-8 rounded-lg flex items-center justify-center"
                             style={{ backgroundColor: `${CATEGORY_COLORS[category as ClothingCategory]}20` }}
                           >
@@ -149,7 +149,7 @@ export function BudgetPanel() {
                       <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all duration-300"
-                          style={{ 
+                          style={{
                             width: `${percentage}%`,
                             backgroundColor: CATEGORY_COLORS[category as ClothingCategory]
                           }}

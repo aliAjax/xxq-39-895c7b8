@@ -54,13 +54,13 @@ export function ReferenceBoard() {
 
   const handleAddImage = () => {
     if (!activeCharacterId || !newImageUrl.trim()) return;
-    
+
     addReferenceImage(activeCharacterId, {
       url: newImageUrl.trim(),
       tags: selectedTags,
       notes: newImageNotes.trim(),
     });
-    
+
     setNewImageUrl('');
     setNewImageNotes('');
     setSelectedTags([]);
@@ -185,7 +185,7 @@ export function ReferenceBoard() {
                       >
                         <Plus size={14} className="text-white" />
                       </button>
-                      
+
                       {showQuickCreateMenu === image.id && (
                         <div
                           className="absolute right-0 top-full mt-1 bg-primary-light border border-white/10 rounded-lg shadow-xl z-10 min-w-[120px] animate-scale-in"
@@ -382,13 +382,13 @@ export function ReferenceBoard() {
             >
               <X size={24} className="text-white" />
             </button>
-            
+
             <img
               src={selectedImage.url}
               alt=""
               className="max-w-full max-h-[80vh] object-contain rounded-lg"
             />
-            
+
             <div className="mt-4 bg-primary-light border border-white/10 rounded-lg p-4">
               <div className="flex items-start gap-4">
                 <div className="flex-1">
@@ -412,7 +412,7 @@ export function ReferenceBoard() {
                     )}
                   </div>
                 </div>
-                
+
                 {selectedImage.notes && (
                   <div className="flex-1">
                     <p className="text-sm text-gray-400 mb-2">备注</p>
@@ -420,7 +420,7 @@ export function ReferenceBoard() {
                   </div>
                 )}
               </div>
-              
+
               <div className="flex gap-2 mt-4 pt-4 border-t border-white/10">
                 <div className="relative flex-1">
                   <button
@@ -430,7 +430,7 @@ export function ReferenceBoard() {
                     <Plus size={16} />
                     从此图创建服装元素
                   </button>
-                  
+
                   {showQuickCreateMenu === 'modal' && (
                     <div className="absolute bottom-full left-0 right-0 mb-2 bg-primary-light border border-white/10 rounded-lg shadow-xl animate-scale-in">
                       <p className="text-xs text-gray-500 px-3 py-2 border-b border-white/10">
@@ -451,7 +451,7 @@ export function ReferenceBoard() {
                     </div>
                   )}
                 </div>
-                
+
                 <button
                   onClick={() => {
                     handleDeleteImage(selectedImage.id);
