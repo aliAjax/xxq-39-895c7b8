@@ -1,4 +1,4 @@
-import { ChevronRight, Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Check, PieChart, TrendingUp, ShoppingBag, Wallet, Package } from 'lucide-react';
+import { ChevronRight, Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Check, PieChart, TrendingUp, ShoppingBag, Wallet, Package, CheckCircle2, Circle } from 'lucide-react';
 import { ClothingCategory } from '../types';
 import { useStore } from '../store/useStore';
 
@@ -209,20 +209,43 @@ export function BudgetPanel() {
                         {categoryLabels[element.category]}
                       </p>
                       {fullElement && fullElement.materials.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
+                        <div className="mt-1.5 space-y-1">
                           {fullElement.materials.map((m, i) => (
-                            <span
+                            <div
                               key={i}
-                              className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-0.5 ${
-                                m.materialId
-                                  ? 'bg-accent/20 text-accent'
-                                  : 'bg-white/10 text-gray-400'
+                              className={`flex items-start gap-1 text-[11px] ${
+                                element.purchasedStatus ? 'text-gray-600' : 'text-gray-500'
                               }`}
-                              title={m.notes || ''}
                             >
-                              {m.materialId && <Package size={9} />}
-                              {m.name}
-                            </span>
+                              {m.materialId && (
+                                <Package size={10} className="text-accent mt-0.5 flex-shrink-0" />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1">
+                                  <span className={m.materialId ? 'text-accent/80' : ''}>
+                                    {m.name}
+                                  </span>
+                                  {m.needToBuy !== undefined && (
+                                    <span className={`flex items-center gap-0.5 text-[9px] px-1 py-0.5 rounded ${
+                                      m.needToBuy
+                                        ? 'bg-accent/15 text-accent'
+                                        : 'bg-success/15 text-success'
+                                    }`}>
+                                      {m.needToBuy ? (
+                                        <><CheckCircle2 size={8} /> 需采购</>
+                                      ) : (
+                                        <><Circle size={8} /> 已有</>
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                                {m.notes && (
+                                  <p className="text-[10px] text-gray-600 mt-0.5 line-clamp-1">
+                                    {m.notes}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
                           ))}
                         </div>
                       )}

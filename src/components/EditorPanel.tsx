@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Plus, Link, Image, Package, Wallet, Calendar, Bell, ListTodo, Copy, Check } from 'lucide-react';
+import { X, Trash2, Plus, Link, Image, Package, Wallet, Calendar, Bell, ListTodo, Copy, Check, CheckCircle2, Circle } from 'lucide-react';
 import {
   ClothingElement,
   ClothingCategory,
@@ -191,17 +191,20 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
 
   const addMaterialFromLibrary = (material: Material) => {
     if (!formData.materials?.some((m) => m.materialId === material.id || m.name === material.name)) {
+      const newMaterials = [
+        ...(formData.materials || []),
+        {
+          name: material.name,
+          materialId: material.id,
+          needToBuy: material.needToBuy,
+          notes: material.notes,
+        },
+      ];
+      const hasNeedToBuyMaterial = newMaterials.some((m) => m.needToBuy);
       setFormData({
         ...formData,
-        materials: [
-          ...(formData.materials || []),
-          {
-            name: material.name,
-            materialId: material.id,
-            needToBuy: material.needToBuy,
-            notes: material.notes,
-          },
-        ],
+        materials: newMaterials,
+        needToBuy: hasNeedToBuyMaterial ? true : formData.needToBuy,
       });
     }
   };
@@ -379,26 +382,51 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
               <Package size={16} />
             </button>
           </div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="space-y-2">
             {formData.materials?.map((material, i) => (
-              <span
+              <div
                 key={i}
-                className={`text-xs px-2 py-1 rounded flex items-center gap-1 group ${
+                className={`flex items-start gap-2 p-2 rounded-lg group ${
                   material.materialId
-                    ? 'bg-accent/20 text-accent border border-accent/30'
-                    : 'bg-white/10 text-gray-300'
+                    ? 'bg-accent/10 border border-accent/20'
+                    : 'bg-white/5'
                 }`}
-                title={material.notes || ''}
               >
-                {material.materialId && <Package size={10} />}
-                {material.name}
-                <button
-                  onClick={() => removeMaterial(material.name)}
-                  className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-opacity"
-                >
-                  <X size={12} />
-                </button>
-              </span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    {material.materialId && <Package size={12} className="text-accent flex-shrink-0" />}
+                    <span className={`text-sm font-medium ${
+                      material.materialId ? 'text-accent' : 'text-white'
+                    }`}>
+                      {material.name}
+                    </span>
+                    {material.needToBuy !== undefined && (
+                      <span className={`flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded ${
+                        material.needToBuy
+                          ? 'bg-accent/20 text-accent'
+                          : 'bg-success/20 text-success'
+                      }`}>
+                        {material.needToBuy ? (
+                          <><CheckCircle2 size={10} /> 需采购</>
+                        ) : (
+                          <><Circle size={10} /> 已有</>
+                        )}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => removeMaterial(material.name)}
+                      className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-opacity ml-auto"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                  {material.notes && (
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                      {material.notes}
+                    </p>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
         </div>
