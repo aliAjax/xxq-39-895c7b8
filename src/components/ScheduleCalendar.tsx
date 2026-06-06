@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -9,17 +9,104 @@ import {
   CheckCircle,
   AlertCircle,
   X,
+  Filter,
 } from 'lucide-react';
-import { ClothingElement, CATEGORY_LABELS, STATUS_LABELS } from '../types';
+import { ClothingElement, CATEGORY_LABELS, STATUS_LABELS, ProductionStatus } from '../types';
 import { useStore } from '../store/useStore';
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+type ViewMode = 'week' | 'month';
+type FilterStatus = 'all' | 'overdue' | 'pending' | 'in_progress';
 
 interface ScheduledElement extends ClothingElement {
   displayDate: number;
   isStartDate: boolean;
   isDueDate: boolean;
 }
+
+const getStartOfDay = (timestamp: number) => {
+  const date = new Date(timestamp);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+};
+
+const isSameDay = (ts1: number, ts2: number) => {
+  const d1 = new Date(ts1);
+  const d2 = new Date(ts2);
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+};
+
+const getStartOfWeek = (timestamp: number) => {
+  const date = new Date(timestamp);
+  const day = date.getDay();
+  const start = new Date(date);
+  start.setDate(date.getDate() - day);
+  start.setHours(0, 0, 0, 0);
+  return start.getTime();
+};
+
+const getStartOfMonth = (timestamp: number) => {
+  const date = new Date(timestamp);
+  const start = new Date(date.getFullYear(), date.getMonth(), 1);
+  start.setHours(0, 0, 0, 0);
+  return start.getTime();
+};
+
+const getDaysInMonth = (timestamp: number) => {
+  const date = new Date(timestamp);
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+};
+
+const getMonthMatrix = (monthStart: number) => {
+  const startDay = new Date(monthStart).getDay();
+  const daysInMonth = getDaysInMonth(monthStart);
+  const prevMonthDays = startDay;
+  const totalCells = Math.ceil((prevMonthDays + daysInMonth) / 7) * 7;
+
+  const days: number[] = [];
+  for (let i = 0; i < totalCells; i++) {
+    const dayOffset = i - startDay;
+    const date = new Date(monthStart);
+    date.setDate(dayOffset + 1);
+    date.setHours(0, 0, 0, 0);
+    days.push(date.getTime());
+  }
+  return days;
+};
+
+const getElementStatusCategory = (element: ClothingElement): FilterStatus => {
+  const today = getStartOfDay(Date.now());
+  const status = element.status as ProductionStatus;
+
+  if (element.scheduleDueDate && status !== 'completed') {
+    const dueDay = getStartOfDay(element.scheduleDueDate);
+    if (dueDay < today) {
+      return 'overdue';
+    }
+  }
+
+  if (status === 'in_progress') {
+    return 'in_progress';
+  }
+
+  if (status === 'pending' || status === 'confirmed') {
+    return 'pending';
+  }
+
+  return 'all';
+};
+
+const FILTER_LABELS: Record<FilterStatus, string> = {
+  all: '全部',
+  overdue: '已逾期',
+  pending: '待开始',
+  in_progress: '制作中',
+};
 
 export function ScheduleCalendar() {
   const {
@@ -29,32 +116,27 @@ export function ScheduleCalendar() {
     setShowScheduleCalendar,
   } = useStore();
 
-  const [currentWeekStart, setCurrentWeekStart] = useState(() => {
-    const now = new Date();
-    const day = now.getDay();
-    const start = new Date(now);
-    start.setDate(now.getDate() - day);
-    start.setHours(0, 0, 0, 0);
-    return start.getTime();
-  });
+  const [viewMode, setViewMode] = useState<ViewMode>('week');
+  const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
+  const [currentAnchor, setCurrentAnchor] = useState(() => getStartOfDay(Date.now()));
 
   const character = characters.find((c) => c.id === activeCharacterId);
 
   const weekDates = useMemo(() => {
+    const weekStart = getStartOfWeek(currentAnchor);
     const dates: number[] = [];
     for (let i = 0; i < 7; i++) {
-      const date = new Date(currentWeekStart);
+      const date = new Date(weekStart);
       date.setDate(date.getDate() + i);
       dates.push(date.getTime());
     }
     return dates;
-  }, [currentWeekStart]);
+  }, [currentAnchor]);
 
-  const getStartOfDay = (timestamp: number) => {
-    const date = new Date(timestamp);
-    date.setHours(0, 0, 0, 0);
-    return date.getTime();
-  };
+  const monthDates = useMemo(() => {
+    const monthStart = getStartOfMonth(currentAnchor);
+    return getMonthMatrix(monthStart);
+  }, [currentAnchor]);
 
   const scheduledElements = useMemo(() => {
     if (!character) return { withSchedule: [], withoutSchedule: [] };
@@ -118,9 +200,32 @@ export function ScheduleCalendar() {
     return { withSchedule, withoutSchedule };
   }, [character]);
 
-  const getElementsForDate = (date: number) => {
-    return scheduledElements.withSchedule.filter((el) => el.displayDate === date);
-  };
+  const filteredScheduledElements = useMemo(() => {
+    if (filterStatus === 'all') return scheduledElements.withSchedule;
+
+    const elementIds = new Set(
+      character?.elements
+        .filter((el) => getElementStatusCategory(el) === filterStatus)
+        .map((el) => el.id) || []
+    );
+
+    return scheduledElements.withSchedule.filter((el) => elementIds.has(el.id));
+  }, [scheduledElements.withSchedule, filterStatus, character]);
+
+  const filteredWithoutSchedule = useMemo(() => {
+    if (filterStatus === 'all') return scheduledElements.withoutSchedule;
+
+    return scheduledElements.withoutSchedule.filter(
+      (el) => getElementStatusCategory(el) === filterStatus
+    );
+  }, [scheduledElements.withoutSchedule, filterStatus]);
+
+  const getElementsForDate = useCallback(
+    (date: number) => {
+      return filteredScheduledElements.filter((el) => isSameDay(el.displayDate, date));
+    },
+    [filteredScheduledElements]
+  );
 
   const getStatusColor = (element: ScheduledElement) => {
     const status = element.status as string;
@@ -168,19 +273,28 @@ export function ScheduleCalendar() {
     return <AlertCircle size={12} />;
   };
 
-  const navigateWeek = (direction: 'prev' | 'next') => {
-    const newStart = new Date(currentWeekStart);
-    newStart.setDate(newStart.getDate() + (direction === 'next' ? 7 : -7));
-    setCurrentWeekStart(newStart.getTime());
+  const navigatePrev = () => {
+    const newDate = new Date(currentAnchor);
+    if (viewMode === 'week') {
+      newDate.setDate(newDate.getDate() - 7);
+    } else {
+      newDate.setMonth(newDate.getMonth() - 1);
+    }
+    setCurrentAnchor(newDate.getTime());
+  };
+
+  const navigateNext = () => {
+    const newDate = new Date(currentAnchor);
+    if (viewMode === 'week') {
+      newDate.setDate(newDate.getDate() + 7);
+    } else {
+      newDate.setMonth(newDate.getMonth() + 1);
+    }
+    setCurrentAnchor(newDate.getTime());
   };
 
   const goToToday = () => {
-    const now = new Date();
-    const day = now.getDay();
-    const start = new Date(now);
-    start.setDate(now.getDate() - day);
-    start.setHours(0, 0, 0, 0);
-    setCurrentWeekStart(start.getTime());
+    setCurrentAnchor(getStartOfDay(Date.now()));
   };
 
   const handleElementClick = (elementId: string) => {
@@ -197,24 +311,221 @@ export function ScheduleCalendar() {
     };
   };
 
-  const isToday = (timestamp: number) => {
-    const today = new Date();
-    const date = new Date(timestamp);
+  const isToday = (timestamp: number) => isSameDay(timestamp, Date.now());
+
+  const isCurrentMonth = (timestamp: number) => {
+    const d1 = new Date(timestamp);
+    const d2 = new Date(currentAnchor);
+    return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
+  };
+
+  const rangeText = useMemo(() => {
+    if (viewMode === 'week') {
+      const start = formatDate(weekDates[0]);
+      const end = formatDate(weekDates[6]);
+      if (start.month === end.month) {
+        return `${start.month}月 ${start.day}日 - ${end.day}日`;
+      }
+      return `${start.month}月 ${start.day}日 - ${end.month}月 ${end.day}日`;
+    } else {
+      const date = new Date(currentAnchor);
+      return `${date.getFullYear()}年 ${date.getMonth() + 1}月`;
+    }
+  }, [viewMode, weekDates, currentAnchor]);
+
+  const renderElementCard = (element: ScheduledElement, idx: number, compact: boolean = false) => {
+    const { isStartDate, isDueDate } = element;
+    const isDuring = !isStartDate && !isDueDate;
+    const status = element.status as string;
+    const isOverdue = isDueDate && status !== 'completed' && element.displayDate < getStartOfDay(Date.now());
+
     return (
-      today.getFullYear() === date.getFullYear() &&
-      today.getMonth() === date.getMonth() &&
-      today.getDate() === date.getDate()
+      <div
+        key={`${element.id}-${idx}`}
+        onClick={() => handleElementClick(element.id)}
+        className={`p-2 rounded-lg border cursor-pointer transition-all hover:scale-[1.02] ${
+          isDuring ? 'opacity-70' : ''
+        } ${getStatusColor(element)}`}
+      >
+        <div className="flex items-center gap-1.5">
+          {getStatusIcon(element)}
+          <span className={`font-medium truncate ${compact ? 'text-xs' : 'text-sm'}`}>
+            {element.name || '未命名'}
+          </span>
+        </div>
+        {!compact && (
+          <>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs opacity-70">
+                {CATEGORY_LABELS[element.category]}
+              </span>
+              <span className="text-xs opacity-70">
+                {STATUS_LABELS[element.status]}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              {isStartDate && (
+                <span className="text-xs px-1.5 py-0.5 bg-white/10 rounded">
+                  开始
+                </span>
+              )}
+              {isDuring && (
+                <span className="text-xs px-1.5 py-0.5 bg-white/10 rounded">
+                  进行中
+                </span>
+              )}
+              {isDueDate && (
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded ${
+                    isOverdue
+                      ? 'bg-red-500/30 text-red-300'
+                      : 'bg-white/10'
+                  }`}
+                >
+                  {isOverdue ? '已逾期' : '截止'}
+                </span>
+              )}
+              {element.needToBuy && (
+                <span className="text-xs px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded">
+                  待采购
+                </span>
+              )}
+            </div>
+            {element.scheduleReminder && (isStartDate || isDueDate) && (
+              <div className="flex items-start gap-1 mt-2 text-xs opacity-80">
+                <Bell size={10} className="mt-0.5 flex-shrink-0" />
+                <span className="line-clamp-2">
+                  {element.scheduleReminder}
+                </span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     );
   };
 
-  const weekRangeText = useMemo(() => {
-    const start = formatDate(weekDates[0]);
-    const end = formatDate(weekDates[6]);
-    if (start.month === end.month) {
-      return `${start.month}月 ${start.day}日 - ${end.day}日`;
+  const renderWeekView = () => (
+    <div className="space-y-4">
+      {weekDates.map((date) => {
+        const dateInfo = formatDate(date);
+        const elements = getElementsForDate(date);
+        const today = isToday(date);
+
+        return (
+          <div key={date} className="bg-white/5 rounded-xl overflow-hidden">
+            <div
+              className={`px-4 py-2 flex items-center justify-between ${
+                today ? 'bg-accent/20 border-b border-accent/30' : 'bg-white/5 border-b border-white/10'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-sm font-medium ${
+                    today ? 'text-accent' : 'text-gray-400'
+                  }`}
+                >
+                  {dateInfo.weekday}
+                </span>
+                <span
+                  className={`text-lg font-bold ${
+                    today ? 'text-white' : 'text-gray-300'
+                  }`}
+                >
+                  {dateInfo.month}/{dateInfo.day}
+                </span>
+              </div>
+              {elements.length > 0 && (
+                <span className="text-xs text-gray-500">
+                  {elements.length} 项
+                </span>
+              )}
+            </div>
+
+            <div className="p-3 space-y-2">
+              {elements.length === 0 ? (
+                <p className="text-xs text-gray-600 text-center py-2">暂无排期</p>
+              ) : (
+                elements.map((element, idx) => renderElementCard(element, idx, false))
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const renderMonthView = () => {
+    const weeks: number[][] = [];
+    for (let i = 0; i < monthDates.length; i += 7) {
+      weeks.push(monthDates.slice(i, i + 7));
     }
-    return `${start.month}月 ${start.day}日 - ${end.month}月 ${end.day}日`;
-  }, [weekDates]);
+
+    return (
+      <div className="flex flex-col h-full">
+        <div className="grid grid-cols-7 gap-px mb-px">
+          {WEEKDAYS.map((day) => (
+            <div key={day} className="text-center text-xs text-gray-500 py-2 font-medium">
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 grid grid-cols-7 grid-rows-6 gap-px bg-white/5 rounded-xl overflow-hidden">
+          {monthDates.map((date) => {
+            const elements = getElementsForDate(date);
+            const today = isToday(date);
+            const inMonth = isCurrentMonth(date);
+
+            return (
+              <div
+                key={date}
+                className={`bg-primary-light min-h-[100px] p-1.5 flex flex-col ${
+                  !inMonth ? 'opacity-40' : ''
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span
+                    className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${
+                      today
+                        ? 'bg-accent text-white'
+                        : inMonth
+                        ? 'text-gray-400'
+                        : 'text-gray-600'
+                    }`}
+                  >
+                    {new Date(date).getDate()}
+                  </span>
+                  {elements.length > 0 && (
+                    <span className="text-[10px] text-gray-500 pr-1">
+                      {elements.length}
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-1 overflow-hidden flex-1">
+                  {elements.slice(0, 3).map((element, idx) => (
+                    <div
+                      key={`${element.id}-${idx}`}
+                      onClick={() => handleElementClick(element.id)}
+                      className={`text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80 transition-opacity ${
+                        getStatusColor(element)
+                      }`}
+                    >
+                      {element.name || '未命名'}
+                    </div>
+                  ))}
+                  {elements.length > 3 && (
+                    <div className="text-[10px] text-gray-500 px-1.5">
+                      +{elements.length - 3} 更多
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   if (!character) {
     return (
@@ -235,7 +546,7 @@ export function ScheduleCalendar() {
           </div>
           <div>
             <h2 className="text-xl font-semibold text-white">制作排期日历</h2>
-            <p className="text-xs text-gray-400">{weekRangeText}</p>
+            <p className="text-xs text-gray-400">{rangeText}</p>
           </div>
         </div>
         <button
@@ -248,156 +559,82 @@ export function ScheduleCalendar() {
 
       <div className="p-4 border-b border-white/10 flex items-center justify-between gap-2 flex-shrink-0">
         <button
-          onClick={() => navigateWeek('prev')}
+          onClick={navigatePrev}
           className="p-2 hover:bg-white/10 rounded-lg transition-colors"
         >
           <ChevronLeft size={20} className="text-gray-300" />
         </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={goToToday}
+            className="px-4 py-1.5 bg-accent/20 hover:bg-accent/30 text-accent rounded-lg text-sm font-medium transition-colors"
+          >
+            今天
+          </button>
+        </div>
         <button
-          onClick={goToToday}
-          className="px-4 py-1.5 bg-accent/20 hover:bg-accent/30 text-accent rounded-lg text-sm font-medium transition-colors"
-        >
-          今天
-        </button>
-        <button
-          onClick={() => navigateWeek('next')}
+          onClick={navigateNext}
           className="p-2 hover:bg-white/10 rounded-lg transition-colors"
         >
           <ChevronRight size={20} className="text-gray-300" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-4">
-          {weekDates.map((date) => {
-            const dateInfo = formatDate(date);
-            const elements = getElementsForDate(date);
-            const today = isToday(date);
-
-            return (
-              <div key={date} className="bg-white/5 rounded-xl overflow-hidden">
-                <div
-                  className={`px-4 py-2 flex items-center justify-between ${
-                    today ? 'bg-accent/20 border-b border-accent/30' : 'bg-white/5 border-b border-white/10'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-sm font-medium ${
-                        today ? 'text-accent' : 'text-gray-400'
-                      }`}
-                    >
-                      {dateInfo.weekday}
-                    </span>
-                    <span
-                      className={`text-lg font-bold ${
-                        today ? 'text-white' : 'text-gray-300'
-                      }`}
-                    >
-                      {dateInfo.month}/{dateInfo.day}
-                    </span>
-                  </div>
-                  {elements.length > 0 && (
-                    <span className="text-xs text-gray-500">
-                      {elements.length} 项
-                    </span>
-                  )}
-                </div>
-
-                <div className="p-3 space-y-2">
-                  {elements.length === 0 ? (
-                    <p className="text-xs text-gray-600 text-center py-2">暂无排期</p>
-                  ) : (
-                    elements.map((element, idx) => {
-                      const { isStartDate, isDueDate } = element;
-                      const isDuring = !isStartDate && !isDueDate;
-                      const status = element.status as string;
-                      const isOverdue = isDueDate && status !== 'completed' && element.displayDate < getStartOfDay(Date.now());
-
-                      return (
-                        <div
-                          key={`${element.id}-${idx}`}
-                          onClick={() => handleElementClick(element.id)}
-                          className={`p-3 rounded-lg border cursor-pointer transition-all hover:scale-[1.02] ${
-                            isDuring ? 'opacity-70' : ''
-                          } ${getStatusColor(element)}`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                {getStatusIcon(element)}
-                                <span className="font-medium text-sm truncate">
-                                  {element.name || '未命名'}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs opacity-70">
-                                  {CATEGORY_LABELS[element.category]}
-                                </span>
-                                <span className="text-xs opacity-70">
-                                  {STATUS_LABELS[element.status]}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1 mt-1 flex-wrap">
-                                {isStartDate && (
-                                  <span className="text-xs px-1.5 py-0.5 bg-white/10 rounded">
-                                    开始
-                                  </span>
-                                )}
-                                {isDuring && (
-                                  <span className="text-xs px-1.5 py-0.5 bg-white/10 rounded">
-                                    进行中
-                                  </span>
-                                )}
-                                {isDueDate && (
-                                  <span
-                                    className={`text-xs px-1.5 py-0.5 rounded ${
-                                    isOverdue
-                                      ? 'bg-red-500/30 text-red-300'
-                                      : 'bg-white/10'
-                                  }`}
-                                  >
-                                    {isOverdue ? '已逾期' : '截止'}
-                                  </span>
-                                )}
-                                {element.needToBuy && (
-                                  <span className="text-xs px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded">
-                                    待采购
-                                  </span>
-                                )}
-                              </div>
-                              {element.scheduleReminder && (isStartDate || isDueDate) && (
-                                <div className="flex items-start gap-1 mt-2 text-xs opacity-80">
-                                  <Bell size={10} className="mt-0.5 flex-shrink-0" />
-                                  <span className="line-clamp-2">
-                                    {element.scheduleReminder}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            );
-          })}
+      <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between gap-3 flex-shrink-0">
+        <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
+          <button
+            onClick={() => setViewMode('week')}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              viewMode === 'week'
+                ? 'bg-accent/20 text-accent'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            周视图
+          </button>
+          <button
+            onClick={() => setViewMode('month')}
+            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              viewMode === 'month'
+                ? 'bg-accent/20 text-accent'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            月视图
+          </button>
         </div>
 
-        {scheduledElements.withoutSchedule.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Filter size={14} className="text-gray-500" />
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as FilterStatus)}
+            className="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-gray-300 focus:outline-none focus:border-accent/50"
+          >
+            {(['all', 'overdue', 'pending', 'in_progress'] as FilterStatus[]).map((status) => (
+              <option key={status} value={status}>
+                {FILTER_LABELS[status]}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        {viewMode === 'week' ? renderWeekView() : renderMonthView()}
+
+        {filteredWithoutSchedule.length > 0 && (
           <div className="mt-6 bg-white/5 rounded-xl overflow-hidden">
             <div className="px-4 py-2 bg-white/5 border-b border-white/10">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-300">未排期元素</span>
                 <span className="text-xs text-gray-500">
-                  {scheduledElements.withoutSchedule.length} 项
+                  {filteredWithoutSchedule.length} 项
                 </span>
               </div>
             </div>
             <div className="p-3 space-y-2">
-              {scheduledElements.withoutSchedule.map((element) => (
+              {filteredWithoutSchedule.map((element) => (
                 <div
                   key={element.id}
                   onClick={() => handleElementClick(element.id)}
