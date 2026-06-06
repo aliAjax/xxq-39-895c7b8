@@ -92,7 +92,6 @@ export const checkProcurementNoBudgetRisk = (element: ClothingElement): RiskItem
 
 export const checkProcurementNotCompletedRisk = (element: ClothingElement): RiskItem | null => {
   if (!element.needToBuy) return null;
-  if (element.status === 'completed') return null;
 
   const budget = element.budget;
   if (budget && budget.purchased) return null;
