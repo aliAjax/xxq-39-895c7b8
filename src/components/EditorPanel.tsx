@@ -124,6 +124,9 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
         needToBuy: formData.needToBuy || false,
         budget: budgetData,
         tasks: [],
+        scheduleStartDate: formData.scheduleStartDate,
+        scheduleDueDate: formData.scheduleDueDate,
+        scheduleReminder: formData.scheduleReminder || '',
       });
     } else if (selectedElementId) {
       updateElement(activeCharacterId, selectedElementId, formData);

@@ -15,8 +15,11 @@ import { useStore } from '../store/useStore';
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
+type DisplayType = 'start' | 'during' | 'end' | 'single';
+
 interface ScheduledElement extends ClothingElement {
   displayDate: number;
+  displayType: DisplayType;
 }
 
 export function ScheduleCalendar() {
@@ -61,25 +64,59 @@ export function ScheduleCalendar() {
     const withoutSchedule: ClothingElement[] = [];
 
     character.elements.forEach((element) => {
-      if (element.scheduleStartDate || element.scheduleDueDate) {
-        if (element.scheduleStartDate) {
+      const hasStart = !!element.scheduleStartDate;
+      const hasDue = !!element.scheduleDueDate;
+
+      if (!hasStart && !hasDue) {
+        withoutSchedule.push(element);
+        return;
+      }
+
+      if (hasStart && hasDue) {
+        const startDay = getStartOfDay(element.scheduleStartDate!);
+        const dueDay = getStartOfDay(element.scheduleDueDate!);
+        const oneDay = 24 * 60 * 60 * 1000;
+
+        if (startDay === dueDay) {
           withSchedule.push({
             ...element,
-            displayDate: getStartOfDay(element.scheduleStartDate),
+            displayDate: startDay,
+            displayType: 'single',
           });
-        }
-        if (element.scheduleDueDate && element.scheduleDueDate !== element.scheduleStartDate) {
-          const dueStartOfDay = getStartOfDay(element.scheduleDueDate);
-          const startStartOfDay = element.scheduleStartDate ? getStartOfDay(element.scheduleStartDate) : -1;
-          if (dueStartOfDay !== startStartOfDay) {
+        } else {
+          const minDay = Math.min(startDay, dueDay);
+          const maxDay = Math.max(startDay, dueDay);
+          const daysCount = Math.round((maxDay - minDay) / oneDay) + 1;
+
+          for (let i = 0; i < daysCount; i++) {
+            const currentDay = minDay + i * oneDay;
+            let displayType: DisplayType;
+            if (i === 0) {
+              displayType = startDay < dueDay ? 'start' : 'end';
+            } else if (i === daysCount - 1) {
+              displayType = startDay < dueDay ? 'end' : 'start';
+            } else {
+              displayType = 'during';
+            }
             withSchedule.push({
               ...element,
-              displayDate: dueStartOfDay,
+              displayDate: currentDay,
+              displayType,
             });
           }
         }
-      } else {
-        withoutSchedule.push(element);
+      } else if (hasStart) {
+        withSchedule.push({
+          ...element,
+          displayDate: getStartOfDay(element.scheduleStartDate!),
+          displayType: 'single',
+        });
+      } else if (hasDue) {
+        withSchedule.push({
+          ...element,
+          displayDate: getStartOfDay(element.scheduleDueDate!),
+          displayType: 'single',
+        });
       }
     });
 
@@ -90,24 +127,24 @@ export function ScheduleCalendar() {
     return scheduledElements.withSchedule.filter((el) => el.displayDate === date);
   };
 
-  const getStatusColor = (element: ClothingElement, date: number) => {
-    const isDueDate = element.scheduleDueDate && getStartOfDay(element.scheduleDueDate) === date;
-    const isStartDate = element.scheduleStartDate && getStartOfDay(element.scheduleStartDate) === date;
+  const getStatusColor = (element: ScheduledElement) => {
     const status = element.status as string;
+    const isEndType = element.displayType === 'end' || element.displayType === 'single';
+    const isStartType = element.displayType === 'start' || element.displayType === 'single';
 
     if (status === 'completed') {
       return 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300';
     }
 
-    if (isDueDate && status !== 'completed') {
+    if (isEndType && status !== 'completed') {
       const today = getStartOfDay(Date.now());
-      if (date < today) {
+      if (element.displayDate < today) {
         return 'bg-red-500/20 border-red-500/50 text-red-300';
       }
       return 'bg-orange-500/20 border-orange-500/50 text-orange-300';
     }
 
-    if (element.needToBuy && isStartDate) {
+    if (element.needToBuy && isStartType) {
       return 'bg-amber-500/20 border-amber-500/50 text-amber-300';
     }
 
@@ -273,19 +310,19 @@ export function ScheduleCalendar() {
                     <p className="text-xs text-gray-600 text-center py-2">暂无排期</p>
                   ) : (
                     elements.map((element, idx) => {
-                      const isStart = element.scheduleStartDate && getStartOfDay(element.scheduleStartDate) === date;
-                      const isDue = element.scheduleDueDate && getStartOfDay(element.scheduleDueDate) === date;
+                      const isStartType = element.displayType === 'start' || element.displayType === 'single';
+                      const isEndType = element.displayType === 'end' || element.displayType === 'single';
                       const status = element.status as string;
-                      const isOverdue = isDue && status !== 'completed' && date < getStartOfDay(Date.now());
+                      const isOverdue = isEndType && status !== 'completed' && element.displayDate < getStartOfDay(Date.now());
+                      const isDuring = element.displayType === 'during';
 
                       return (
                         <div
                           key={`${element.id}-${idx}`}
                           onClick={() => handleElementClick(element.id)}
-                          className={`p-3 rounded-lg border cursor-pointer transition-all hover:scale-[1.02] ${getStatusColor(
-                            element,
-                            date
-                          )}`}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all hover:scale-[1.02] ${
+                            isDuring ? 'opacity-75' : ''
+                          } ${getStatusColor(element)}`}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
@@ -303,13 +340,18 @@ export function ScheduleCalendar() {
                                   {STATUS_LABELS[element.status]}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-1 mt-1">
-                                {isStart && (
+                              <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                {isStartType && (
                                   <span className="text-xs px-1.5 py-0.5 bg-white/10 rounded">
                                     开始
                                   </span>
                                 )}
-                                {isDue && (
+                                {isDuring && (
+                                  <span className="text-xs px-1.5 py-0.5 bg-white/10 rounded">
+                                    进行中
+                                  </span>
+                                )}
+                                {isEndType && (
                                   <span
                                     className={`text-xs px-1.5 py-0.5 rounded ${
                                       isOverdue
@@ -326,7 +368,7 @@ export function ScheduleCalendar() {
                                   </span>
                                 )}
                               </div>
-                              {element.scheduleReminder && (isStart || isDue) && (
+                              {element.scheduleReminder && (isStartType || isEndType) && (
                                 <div className="flex items-start gap-1 mt-2 text-xs opacity-80">
                                   <Bell size={10} className="mt-0.5 flex-shrink-0" />
                                   <span className="line-clamp-2">
