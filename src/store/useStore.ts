@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, BudgetSummary, BudgetItem, CharacterStats, TaskTemplate, AppSettings, DEFAULT_TASK_TEMPLATES, SavedView, OverviewFilters } from '../types';
 import { loadFromStorage, saveToStorage, loadSettings, saveSettings, loadViews, saveViews } from '../utils/storage';
+import { calculateCharacterBudget, calculateProjectBudget } from '../utils/budgetUtils';
 import { sampleCharacters } from '../data/sampleData';
 
 const DEFAULT_CATEGORIES: ClothingCategory[] = ['head', 'top', 'bottom', 'shoes', 'accessory', 'weapon'];
@@ -83,6 +84,8 @@ interface StoreState {
   getFilteredReferenceImages: (tagFilter: ReferenceTag | 'all') => ReferenceImage[];
 
   getBudgetSummary: () => BudgetSummary | null;
+  getCharacterBudgetSummary: (characterId: string) => BudgetSummary | null;
+  getProjectBudgetSummary: () => BudgetSummary;
   updateElementBudget: (characterId: string, elementId: string, budget: Partial<BudgetItem>) => void;
   toggleElementPurchased: (characterId: string, elementId: string) => void;
   replaceCharacters: (characters: Character[]) => void;
@@ -758,47 +761,19 @@ export const useStore = create<StoreState>((set, get) => ({
     const state = get();
     const character = state.characters.find((char) => char.id === state.activeCharacterId);
     if (!character) return null;
+    return calculateCharacterBudget(character);
+  },
 
-    let totalEstimated = 0;
-    let totalPurchased = 0;
+  getCharacterBudgetSummary: (characterId) => {
+    const state = get();
+    const character = state.characters.find((char) => char.id === characterId);
+    if (!character) return null;
+    return calculateCharacterBudget(character);
+  },
 
-    const categoryBreakdown: Record<ClothingCategory, { estimated: number; purchased: number }> = {
-      head: { estimated: 0, purchased: 0 },
-      top: { estimated: 0, purchased: 0 },
-      bottom: { estimated: 0, purchased: 0 },
-      shoes: { estimated: 0, purchased: 0 },
-      accessory: { estimated: 0, purchased: 0 },
-      weapon: { estimated: 0, purchased: 0 },
-    };
-
-    const elements = character.elements.map((el) => {
-      const budget = el.budget || DEFAULT_BUDGET;
-      const elementEstimated = budget.materialCost + budget.toolCost + budget.outsourcingCost;
-      const elementPurchased = budget.purchased ? elementEstimated : 0;
-
-      totalEstimated += elementEstimated;
-      totalPurchased += elementPurchased;
-
-      categoryBreakdown[el.category].estimated += elementEstimated;
-      categoryBreakdown[el.category].purchased += elementPurchased;
-
-      return {
-        id: el.id,
-        name: el.name,
-        category: el.category,
-        estimated: elementEstimated,
-        purchased: elementPurchased,
-        purchasedStatus: budget.purchased,
-      };
-    });
-
-    return {
-      totalEstimated,
-      totalPurchased,
-      totalRemaining: totalEstimated - totalPurchased,
-      categoryBreakdown,
-      elements,
-    };
+  getProjectBudgetSummary: () => {
+    const state = get();
+    return calculateProjectBudget(state.characters);
   },
 
   updateElementBudget: (characterId, elementId, budget) => {

@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Package, ShoppingCart, Hammer, Sparkles, Clock, AlertCircle, Filter, X, Plus, Save, Eye, Check } from 'lucide-react';
+import { Package, ShoppingCart, Hammer, Sparkles, Clock, AlertCircle, Filter, X, Plus, Save, Eye, Check, Wallet, PieChart, TrendingUp } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { OverviewCompletionFilter } from '../types';
 
 export function ProjectOverview() {
-  const { characters, setActiveCharacter, setShowProjectOverview, getCharacterStats, getAllSources, savedViews, addSavedView, deleteSavedView } = useStore();
+  const { characters, setActiveCharacter, setShowProjectOverview, getCharacterStats, getCharacterBudgetSummary, getProjectBudgetSummary, getAllSources, savedViews, addSavedView, deleteSavedView } = useStore();
 
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [completionFilter, setCompletionFilter] = useState<OverviewCompletionFilter>('all');
@@ -77,6 +77,14 @@ export function ProjectOverview() {
       hasQuestions,
     };
   }, [characters, getCharacterStats]);
+
+  const projectBudget = useMemo(() => {
+    return getProjectBudgetSummary();
+  }, [getProjectBudgetSummary]);
+
+  const budgetProgress = projectBudget.totalEstimated > 0
+    ? (projectBudget.totalPurchased / projectBudget.totalEstimated) * 100
+    : 0;
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -233,6 +241,56 @@ export function ProjectOverview() {
         </div>
       </div>
 
+      <div className="px-6 py-4 border-b border-white/10 bg-white/[0.02]">
+        <div className="flex items-center gap-2 mb-3">
+          <Wallet size={18} className="text-accent" />
+          <h3 className="text-sm font-semibold text-white">项目预算总览</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+            <div className="flex items-center gap-2 text-gray-400 text-xs mb-1">
+              <PieChart size={14} />
+              总预算
+            </div>
+            <div className="text-2xl font-bold text-white">
+              ¥{projectBudget.totalEstimated.toLocaleString()}
+            </div>
+          </div>
+          <div className="bg-success/10 rounded-xl p-4 border border-success/20">
+            <div className="flex items-center gap-2 text-success text-xs mb-1">
+              <Check size={14} />
+              已采购金额
+            </div>
+            <div className="text-2xl font-bold text-success">
+              ¥{projectBudget.totalPurchased.toLocaleString()}
+            </div>
+          </div>
+          <div className="bg-accent/10 rounded-xl p-4 border border-accent/20">
+            <div className="flex items-center gap-2 text-accent text-xs mb-1">
+              <TrendingUp size={14} />
+              待采购金额
+            </div>
+            <div className="text-2xl font-bold text-accent">
+              ¥{projectBudget.totalRemaining.toLocaleString()}
+            </div>
+          </div>
+        </div>
+        <div className="mt-3 bg-white/5 rounded-xl p-4 border border-white/10">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-400">采购进度</span>
+            <span className="text-sm font-medium text-success">
+              {Math.round(budgetProgress)}%
+            </span>
+          </div>
+          <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-success to-success-light rounded-full transition-all duration-500"
+              style={{ width: `${budgetProgress}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
       {savedViews.length > 0 && (
         <div className="px-6 py-3 border-b border-white/10 flex items-center gap-2 flex-wrap bg-white/[0.02]">
           <div className="flex items-center gap-2 text-gray-400 mr-2">
@@ -345,10 +403,14 @@ export function ProjectOverview() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filteredCharacters.map((char, index) => {
               const stats = getCharacterStats(char.id);
+              const budget = getCharacterBudgetSummary(char.id);
               if (!stats) return null;
 
               const completionLabel = getCompletionLabel(stats.completionRate, stats.totalElements);
               const gradientClass = getCompletionColor(stats.completionRate);
+              const budgetProgress = budget && budget.totalEstimated > 0
+                ? (budget.totalPurchased / budget.totalEstimated) * 100
+                : 0;
 
               return (
                 <div
@@ -393,6 +455,30 @@ export function ProjectOverview() {
                       {stats.completedCount} / {stats.totalElements} 个元素 · {completionLabel}
                     </div>
                   </div>
+
+                  {budget && budget.totalEstimated > 0 && (
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between text-sm mb-2">
+                        <span className="text-gray-400 flex items-center gap-1">
+                          <Wallet size={14} />
+                          预算进度
+                        </span>
+                        <span className="font-medium text-success">
+                          {Math.round(budgetProgress)}%
+                        </span>
+                      </div>
+                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-success to-success-light rounded-full transition-all duration-500"
+                          style={{ width: `${budgetProgress}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>总预算 ¥{budget.totalEstimated.toLocaleString()}</span>
+                        <span>已购 ¥{budget.totalPurchased.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     <div className="bg-white/5 rounded-lg p-2 text-center">
