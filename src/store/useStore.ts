@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, DEFAULT_TASK_TYPES, TASK_TYPE_LABELS, BudgetSummary, BudgetItem, CharacterStats } from '../types';
-import { loadFromStorage, saveToStorage } from '../utils/storage';
+import { Character, ClothingElement, ClothingCategory, ReferenceImage, ReferenceTag, PaletteColor, ProductionTask, DEFAULT_TASK_TYPES, TASK_TYPE_LABELS, BudgetSummary, BudgetItem, CharacterStats, TaskTemplate, AppSettings, DEFAULT_TASK_TEMPLATES } from '../types';
+import { loadFromStorage, saveToStorage, loadSettings, saveSettings } from '../utils/storage';
 import { sampleCharacters } from '../data/sampleData';
 
 const DEFAULT_CATEGORIES: ClothingCategory[] = ['head', 'top', 'bottom', 'shoes', 'accessory', 'weapon'];
@@ -27,6 +27,8 @@ interface StoreState {
   showProjectOverview: boolean;
   newElementFromReference: { imageUrl: string; category: ClothingCategory } | null;
   showCharacterWizard: boolean;
+  showSettings: boolean;
+  settings: AppSettings;
   
   setActiveCharacter: (id: string | null) => void;
   setSelectedCategory: (category: ClothingCategory | 'all') => void;
@@ -40,6 +42,12 @@ interface StoreState {
   setShowProjectOverview: (show: boolean) => void;
   setNewElementFromReference: (data: { imageUrl: string; category: ClothingCategory } | null) => void;
   setShowCharacterWizard: (show: boolean) => void;
+  setShowSettings: (show: boolean) => void;
+  
+  updateTaskTemplates: (templates: TaskTemplate[]) => void;
+  resetTaskTemplates: () => void;
+  applyTaskTemplates: (characterId: string, elementId: string) => void;
+  addMissingTasks: (characterId: string, elementId: string) => void;
   
   addCharacter: () => void;
   createCharacterWithData: (data: { name: string; source: string; description: string; autoGenerateElements: boolean }) => void;
@@ -104,8 +112,10 @@ export const useStore = create<StoreState>((set, get) => ({
   showProjectOverview: false,
   newElementFromReference: null,
   showCharacterWizard: false,
+  showSettings: false,
+  settings: loadSettings(),
 
-  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showProjectOverview: false }),
+  setActiveCharacter: (id) => set({ activeCharacterId: id, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showSettings: false }),
   setSelectedCategory: (category) => set({ selectedCategory: category }),
   setSelectedElement: (id) => set({ selectedElementId: id, newElementFromReference: null }),
   setShowShoppingList: (show) => set({ showShoppingList: show, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false }),
@@ -117,6 +127,95 @@ export const useStore = create<StoreState>((set, get) => ({
   setShowProjectOverview: (show) => set({ showProjectOverview: show, showShoppingList: false, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, selectedElementId: null }),
   setNewElementFromReference: (data) => set({ newElementFromReference: data }),
   setShowCharacterWizard: (show) => set({ showCharacterWizard: show }),
+  setShowSettings: (show) => set({ showSettings: show, selectedElementId: null, showReferenceBoard: false, showColorPalette: false, showBudgetPanel: false, showPrintSpecification: false, showScheduleCalendar: false, showProjectOverview: false }),
+
+  updateTaskTemplates: (templates) => {
+    set((state) => {
+      const newSettings = { ...state.settings, taskTemplates: templates };
+      saveSettings(newSettings);
+      return { settings: newSettings };
+    });
+  },
+
+  resetTaskTemplates: () => {
+    set((state) => {
+      const newSettings = { ...state.settings, taskTemplates: [...DEFAULT_TASK_TEMPLATES] };
+      saveSettings(newSettings);
+      return { settings: newSettings };
+    });
+  },
+
+  applyTaskTemplates: (characterId, elementId) => {
+    const state = get();
+    const templates = [...state.settings.taskTemplates].sort((a, b) => a.order - b.order);
+    const now = Date.now();
+    const newTasks: ProductionTask[] = templates.map((tpl, index) => ({
+      id: `task-${now}-${index}`,
+      type: tpl.type,
+      name: tpl.name,
+      completed: false,
+      createdAt: now,
+      updatedAt: now,
+    }));
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              elements: char.elements.map((el) =>
+                el.id === elementId
+                  ? { ...el, tasks: newTasks, updatedAt: now }
+                  : el
+              ),
+              updatedAt: now,
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
+
+  addMissingTasks: (characterId, elementId) => {
+    const state = get();
+    const character = state.characters.find((c) => c.id === characterId);
+    const element = character?.elements.find((e) => e.id === elementId);
+    if (!element) return;
+
+    const templates = [...state.settings.taskTemplates].sort((a, b) => a.order - b.order);
+    const existingTaskTypes = new Set(element.tasks.map((t) => t.type));
+    const now = Date.now();
+    const missingTasks = templates
+      .filter((tpl) => !existingTaskTypes.has(tpl.type))
+      .map((tpl, index) => ({
+        id: `task-${now}-${index}`,
+        type: tpl.type,
+        name: tpl.name,
+        completed: false,
+        createdAt: now,
+        updatedAt: now,
+      }));
+
+    if (missingTasks.length === 0) return;
+
+    set((state) => {
+      const newCharacters = state.characters.map((char) =>
+        char.id === characterId
+          ? {
+              ...char,
+              elements: char.elements.map((el) =>
+                el.id === elementId
+                  ? { ...el, tasks: [...el.tasks, ...missingTasks], updatedAt: now }
+                  : el
+              ),
+              updatedAt: now,
+            }
+          : char
+      );
+      saveToStorage(newCharacters);
+      return { characters: newCharacters };
+    });
+  },
 
   addCharacter: () => {
     const now = Date.now();

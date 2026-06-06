@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, Plus, Link, Image, Package, Wallet, Calendar, Bell } from 'lucide-react';
+import { X, Trash2, Plus, Link, Image, Package, Wallet, Calendar, Bell, ListTodo, Copy, Check } from 'lucide-react';
 import {
   ClothingElement,
   ClothingCategory,
   DifficultyLevel,
   ProductionStatus,
   BudgetItem,
+  ProductionTask,
   CATEGORY_LABELS,
   DIFFICULTY_LABELS,
   STATUS_LABELS,
+  TASK_TYPE_LABELS,
 } from '../types';
 import { useStore } from '../store/useStore';
 import { useMaterialStore } from '../store/useMaterialStore';
@@ -38,6 +40,7 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
     characters,
     newElementFromReference,
     updateElementBudget,
+    settings,
   } = useStore();
   const { setShowMaterialSelector, showMaterialSelector } = useMaterialStore();
 
@@ -45,7 +48,7 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
   const element = character?.elements.find((e) => e.id === selectedElementId);
 
   const [formData, setFormData] = useState<
-    Partial<ClothingElement> & { category: ClothingCategory }
+    Partial<ClothingElement> & { category: ClothingCategory; tasks: ProductionTask[] }
   >({
     name: '',
     category: 'head',
@@ -57,6 +60,7 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
     questions: '',
     status: 'pending',
     needToBuy: false,
+    tasks: [],
     scheduleStartDate: undefined,
     scheduleDueDate: undefined,
     scheduleReminder: '',
@@ -70,7 +74,7 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
 
   useEffect(() => {
     if (element && !isNew) {
-      setFormData(element);
+      setFormData({ ...element, tasks: element.tasks || [] });
       setBudgetData(element.budget || DEFAULT_BUDGET);
     } else if (isNew) {
       if (newElementFromReference) {
@@ -85,6 +89,7 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
           questions: '',
           status: 'pending',
           needToBuy: false,
+          tasks: [],
         });
       } else {
         setFormData({
@@ -98,6 +103,7 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
           questions: '',
           status: 'pending',
           needToBuy: false,
+          tasks: [],
           scheduleStartDate: undefined,
           scheduleDueDate: undefined,
           scheduleReminder: '',
@@ -106,6 +112,23 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
       setBudgetData(DEFAULT_BUDGET);
     }
   }, [element, isNew, newElementFromReference]);
+
+  const handleApplyTemplate = () => {
+    if (formData.tasks.length > 0 && !confirm('套用模板将替换现有所有任务，确定继续吗？')) {
+      return;
+    }
+    const templates = [...settings.taskTemplates].sort((a, b) => a.order - b.order);
+    const now = Date.now();
+    const newTasks: ProductionTask[] = templates.map((tpl, index) => ({
+      id: `task-new-${now}-${index}`,
+      type: tpl.type,
+      name: tpl.name,
+      completed: false,
+      createdAt: now,
+      updatedAt: now,
+    }));
+    setFormData({ ...formData, tasks: newTasks });
+  };
 
   const handleSave = () => {
     if (!activeCharacterId || !formData.name) return;
@@ -123,7 +146,7 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
         status: formData.status as ProductionStatus,
         needToBuy: formData.needToBuy || false,
         budget: budgetData,
-        tasks: [],
+        tasks: formData.tasks || [],
         scheduleStartDate: formData.scheduleStartDate,
         scheduleDueDate: formData.scheduleDueDate,
         scheduleReminder: formData.scheduleReminder || '',
@@ -580,6 +603,53 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
             </div>
           </div>
         </div>
+
+        {isNew && (
+          <div className="pt-4 border-t border-white/10">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-gray-400 flex items-center gap-2">
+                  <ListTodo size={16} />
+                  制作任务清单
+                </label>
+                <button
+                  onClick={handleApplyTemplate}
+                  className="text-xs text-accent hover:text-accent-light transition-colors flex items-center gap-1"
+                >
+                  <Copy size={12} />
+                  套用模板
+                </button>
+              </div>
+
+              {formData.tasks.length > 0 && (
+                <div className="space-y-1.5">
+                  {formData.tasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-2 p-2 bg-white/5 rounded-lg"
+                    >
+                      <div className="w-5 h-5 rounded border border-white/30 flex items-center justify-center">
+                        <Check size={12} className="text-transparent" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm text-white">{task.name}</span>
+                        <span className="ml-2 text-xs text-gray-500">
+                          {TASK_TYPE_LABELS[task.type]}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {formData.tasks.length === 0 && (
+                <p className="text-xs text-gray-500 text-center py-4 bg-white/5 rounded-lg">
+                  暂无任务，点击上方「套用模板」添加默认任务
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {!isNew && activeCharacterId && selectedElementId && element && (
           <div className="pt-4 border-t border-white/10">

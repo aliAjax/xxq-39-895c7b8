@@ -1,6 +1,7 @@
-import { Character } from '../types';
+import { Character, AppSettings, DEFAULT_TASK_TEMPLATES } from '../types';
 
 const STORAGE_KEY = 'cosplay-costume-analyzer-data';
+const SETTINGS_STORAGE_KEY = 'cosplay-costume-analyzer-settings';
 
 function migrateData(characters: Character[]): Character[] {
   const now = Date.now();
@@ -46,5 +47,30 @@ export function clearStorage(): void {
     localStorage.removeItem(STORAGE_KEY);
   } catch (error) {
     console.error('Failed to clear storage:', error);
+  }
+}
+
+export function loadSettings(): AppSettings {
+  try {
+    const data = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (data) {
+      const parsed = JSON.parse(data);
+      return {
+        taskTemplates: parsed.taskTemplates || DEFAULT_TASK_TEMPLATES,
+      };
+    }
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+  }
+  return {
+    taskTemplates: [...DEFAULT_TASK_TEMPLATES],
+  };
+}
+
+export function saveSettings(settings: AppSettings): void {
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch (error) {
+    console.error('Failed to save settings:', error);
   }
 }

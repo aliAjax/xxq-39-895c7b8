@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus, Trash2, Package, Download, Upload, LayoutGrid } from 'lucide-react';
+import { Plus, Trash2, Package, Download, Upload, LayoutGrid, Settings } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useMaterialStore } from '../store/useMaterialStore';
 import { exportProjectPackage, readProjectPackage, generateImportPreview } from '../utils/projectPackage';
@@ -15,6 +15,8 @@ export function Sidebar() {
     deleteCharacter,
     showProjectOverview,
     setShowProjectOverview,
+    showSettings,
+    setShowSettings,
   } = useStore();
   const { showMaterialLibrary, setShowMaterialLibrary, materials } = useMaterialStore();
 
@@ -97,6 +99,17 @@ export function Sidebar() {
           <span className="text-xs px-1.5 py-0.5 bg-white/10 rounded">
             {materials.length}
           </span>
+        </button>
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg transition-all duration-200 font-medium ${
+            showSettings
+              ? 'bg-accent/20 text-accent border border-accent/50'
+              : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-transparent'
+          }`}
+        >
+          <Settings size={18} />
+          设置
         </button>
         <div className="flex gap-2">
           <button

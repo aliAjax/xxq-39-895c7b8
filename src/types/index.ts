@@ -181,6 +181,26 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
 
 export const DEFAULT_TASK_TYPES: TaskType[] = ['pattern_making', 'procurement', 'cutting', 'sewing', 'coloring', 'fitting'];
 
+export interface TaskTemplate {
+  id: string;
+  type: TaskType;
+  name: string;
+  order: number;
+}
+
+export interface AppSettings {
+  taskTemplates: TaskTemplate[];
+}
+
+export const DEFAULT_TASK_TEMPLATES: TaskTemplate[] = [
+  { id: 'tpl-1', type: 'pattern_making', name: '打版', order: 0 },
+  { id: 'tpl-2', type: 'procurement', name: '采购', order: 1 },
+  { id: 'tpl-3', type: 'cutting', name: '裁剪', order: 2 },
+  { id: 'tpl-4', type: 'sewing', name: '缝制', order: 3 },
+  { id: 'tpl-5', type: 'coloring', name: '上色', order: 4 },
+  { id: 'tpl-6', type: 'fitting', name: '试穿', order: 5 },
+];
+
 export interface ProjectPackage {
   version: string;
   exportedAt: number;

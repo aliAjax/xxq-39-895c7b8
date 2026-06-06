@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Check, ListTodo } from 'lucide-react';
+import { Plus, X, Check, ListTodo, Copy, PlusCircle } from 'lucide-react';
 import {
   ProductionTask,
   TaskType,
@@ -15,9 +15,10 @@ interface TaskListProps {
 }
 
 export function TaskList({ elementId, characterId, tasks }: TaskListProps) {
-  const { addTask, deleteTask, toggleTaskComplete, addDefaultTasks, getTaskProgress } = useStore();
+  const { addTask, deleteTask, toggleTaskComplete, applyTaskTemplates, addMissingTasks, getTaskProgress, settings } = useStore();
   const [newTaskName, setNewTaskName] = useState('');
   const [newTaskType, setNewTaskType] = useState<TaskType>('other');
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
 
   const handleAddTask = () => {
     if (!newTaskName.trim()) return;
@@ -29,11 +30,24 @@ export function TaskList({ elementId, characterId, tasks }: TaskListProps) {
     setNewTaskName('');
   };
 
-  const handleAddDefaultTasks = () => {
-    addDefaultTasks(characterId, elementId);
+  const handleApplyTemplates = () => {
+    if (tasks.length > 0 && !confirm('套用模板将替换现有所有任务，确定继续吗？')) {
+      setShowTemplateMenu(false);
+      return;
+    }
+    applyTaskTemplates(characterId, elementId);
+    setShowTemplateMenu(false);
+  };
+
+  const handleAddMissingTasks = () => {
+    addMissingTasks(characterId, elementId);
+    setShowTemplateMenu(false);
   };
 
   const progress = tasks.length > 0 ? getTaskProgress({ tasks } as ClothingElement) : 0;
+
+  const existingTaskTypes = new Set(tasks.map((t) => t.type));
+  const missingCount = settings.taskTemplates.filter((tpl) => !existingTaskTypes.has(tpl.type)).length;
 
   return (
     <div className="space-y-4">
@@ -42,14 +56,39 @@ export function TaskList({ elementId, characterId, tasks }: TaskListProps) {
           <ListTodo size={16} />
           制作任务清单
         </label>
-        {tasks.length === 0 && (
+        <div className="relative">
           <button
-            onClick={handleAddDefaultTasks}
-            className="text-xs text-accent hover:text-accent-light transition-colors"
+            onClick={() => setShowTemplateMenu(!showTemplateMenu)}
+            className="text-xs text-accent hover:text-accent-light transition-colors flex items-center gap-1"
           >
-            + 添加默认任务
+            <Copy size={12} />
+            模板操作
           </button>
-        )}
+          {showTemplateMenu && (
+            <div className="absolute right-0 top-full mt-1 bg-primary-dark border border-white/10 rounded-lg shadow-lg py-1 z-10 min-w-[160px]">
+              <button
+                onClick={handleApplyTemplates}
+                className="w-full px-3 py-2 text-left text-xs text-gray-300 hover:bg-white/10 flex items-center gap-2 transition-colors"
+              >
+                <Copy size={12} />
+                套用模板任务
+              </button>
+              <button
+                onClick={handleAddMissingTasks}
+                disabled={missingCount === 0}
+                className="w-full px-3 py-2 text-left text-xs text-gray-300 hover:bg-white/10 flex items-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <PlusCircle size={12} />
+                追加缺失任务
+                {missingCount > 0 && (
+                  <span className="ml-auto bg-accent/20 text-accent px-1.5 py-0.5 rounded text-[10px]">
+                    {missingCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {tasks.length > 0 && (
