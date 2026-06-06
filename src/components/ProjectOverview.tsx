@@ -1,8 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Package, ShoppingCart, Hammer, Sparkles, Clock, AlertCircle, Filter, X, Plus, Save, Eye, Check, Wallet, PieChart, TrendingUp } from 'lucide-react';
+import { Package, ShoppingCart, Hammer, Sparkles, Clock, AlertCircle, AlertTriangle, Filter, X, Plus, Save, Eye, Check, Wallet, PieChart, TrendingUp } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { OverviewCompletionFilter } from '../types';
 import { calculateProjectBudget, calculateCharacterBudget } from '../utils/budgetUtils';
+import {
+  getProjectRiskSummary,
+  getCharacterRiskSummary,
+} from '../utils/riskUtils';
 
 export function ProjectOverview() {
   const { characters, setActiveCharacter, setShowProjectOverview, getCharacterStats, getAllSources, savedViews, addSavedView, deleteSavedView } = useStore();
@@ -81,6 +85,10 @@ export function ProjectOverview() {
 
   const projectBudget = useMemo(() => {
     return calculateProjectBudget(characters);
+  }, [characters]);
+
+  const projectRiskSummary = useMemo(() => {
+    return getProjectRiskSummary(characters);
   }, [characters]);
 
   const budgetProgress = projectBudget.totalEstimated > 0
@@ -190,7 +198,7 @@ export function ProjectOverview() {
         </div>
       </div>
 
-      <div className="p-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 border-b border-white/10">
+      <div className="p-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-9 gap-4 border-b border-white/10">
         <div className="bg-white/5 rounded-lg p-4 border border-white/10">
           <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
             <Package size={16} />
@@ -239,6 +247,20 @@ export function ProjectOverview() {
             <span>有待确认</span>
           </div>
           <div className="text-3xl font-bold text-warning">{overallStats.hasQuestions}</div>
+        </div>
+        <div className="bg-red-500/10 rounded-lg p-4 border border-red-500/20">
+          <div className="flex items-center gap-2 text-red-400 text-sm mb-2">
+            <AlertTriangle size={16} />
+            <span>严重风险</span>
+          </div>
+          <div className="text-3xl font-bold text-red-400">{projectRiskSummary.dangerCount}</div>
+        </div>
+        <div className="bg-amber-500/10 rounded-lg p-4 border border-amber-500/20">
+          <div className="flex items-center gap-2 text-amber-400 text-sm mb-2">
+            <AlertCircle size={16} />
+            <span>一般风险</span>
+          </div>
+          <div className="text-3xl font-bold text-amber-400">{projectRiskSummary.warningCount}</div>
         </div>
       </div>
 
@@ -405,6 +427,7 @@ export function ProjectOverview() {
             {filteredCharacters.map((char, index) => {
               const stats = getCharacterStats(char.id);
               const budget = calculateCharacterBudget(char);
+              const riskSummary = getCharacterRiskSummary(char);
               if (!stats) return null;
 
               const completionLabel = getCompletionLabel(stats.completionRate, stats.totalElements);
@@ -412,14 +435,31 @@ export function ProjectOverview() {
               const budgetProgress = budget.totalEstimated > 0
                 ? (budget.totalPurchased / budget.totalEstimated) * 100
                 : 0;
+              const hasRisk = riskSummary.totalRisks > 0;
 
               return (
                 <div
                   key={char.id}
                   onClick={() => handleCharacterClick(char.id)}
-                  className="group bg-white/5 rounded-xl p-5 border border-white/10 cursor-pointer transition-all duration-200 hover:bg-white/10 hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5"
+                  className="group bg-white/5 rounded-xl p-5 border border-white/10 cursor-pointer transition-all duration-200 hover:bg-white/10 hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 relative overflow-hidden"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
+                  {hasRisk && (
+                    <div className="absolute top-0 left-0 right-0 h-1 flex">
+                      {riskSummary.dangerCount > 0 && (
+                        <div
+                          className="bg-red-500"
+                          style={{ width: `${(riskSummary.dangerCount / riskSummary.totalRisks) * 100}%` }}
+                        />
+                      )}
+                      {riskSummary.warningCount > 0 && (
+                        <div
+                          className="bg-amber-500 flex-1"
+                          style={{ width: `${(riskSummary.warningCount / riskSummary.totalRisks) * 100}%` }}
+                        />
+                      )}
+                    </div>
+                  )}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-semibold text-white truncate group-hover:text-accent transition-colors">
@@ -429,11 +469,27 @@ export function ProjectOverview() {
                         {char.source || '未设置来源'}
                       </p>
                     </div>
-                    {stats.hasUnansweredQuestions && (
-                      <div className="flex-shrink-0 ml-2">
+                    <div className="flex items-center gap-1 ml-2">
+                      {stats.hasUnansweredQuestions && (
                         <AlertCircle size={18} className="text-warning" />
-                      </div>
-                    )}
+                      )}
+                      {hasRisk && (
+                        <div
+                          className={`flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded ${
+                            riskSummary.dangerCount > 0
+                              ? 'bg-red-500/20 text-red-400'
+                              : 'bg-amber-500/20 text-amber-400'
+                          }`}
+                        >
+                          {riskSummary.dangerCount > 0 ? (
+                            <AlertTriangle size={12} />
+                          ) : (
+                            <AlertCircle size={12} />
+                          )}
+                          <span>{riskSummary.totalRisks}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="mb-4">
@@ -501,6 +557,38 @@ export function ProjectOverview() {
                       </>
                     )}
                   </div>
+
+                  {hasRisk && (
+                    <div className="mb-4 space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <AlertTriangle size={12} />
+                        <span>风险提示</span>
+                      </div>
+                      <div className="space-y-1">
+                        {riskSummary.risks.slice(0, 3).map((risk, riskIdx) => (
+                          <div
+                            key={riskIdx}
+                            className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded ${
+                              risk.severity === 'danger'
+                                ? 'bg-red-500/10 text-red-400'
+                                : 'bg-amber-500/10 text-amber-400'
+                            }`}
+                          >
+                            {risk.type === 'overdue' && <Clock size={10} />}
+                            {risk.type === 'high_difficulty_conflict' && <AlertTriangle size={10} />}
+                            {risk.type === 'procurement_no_budget' && <Wallet size={10} />}
+                            {risk.type === 'procurement_not_completed' && <ShoppingCart size={10} />}
+                            <span className="truncate">{risk.message}</span>
+                          </div>
+                        ))}
+                        {riskSummary.risks.length > 3 && (
+                          <div className="text-[10px] text-gray-500 text-center">
+                            还有 {riskSummary.risks.length - 3} 项风险
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     <div className="bg-white/5 rounded-lg p-2 text-center">

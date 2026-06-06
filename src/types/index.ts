@@ -303,3 +303,59 @@ export interface SavedView {
   filters: OverviewFilters;
   createdAt: number;
 }
+
+export type RiskType = 'overdue' | 'high_difficulty_conflict' | 'procurement_no_budget' | 'procurement_not_completed';
+
+export interface RiskItem {
+  type: RiskType;
+  severity: 'warning' | 'danger';
+  message: string;
+  elementId: string;
+  characterId?: string;
+  relatedElementIds?: string[];
+  date?: number;
+}
+
+export interface ElementRiskResult {
+  elementId: string;
+  risks: RiskItem[];
+  hasRisk: boolean;
+  highestSeverity: 'none' | 'warning' | 'danger';
+}
+
+export interface DateRiskResult {
+  date: number;
+  risks: RiskItem[];
+  highDifficultyConflictCount: number;
+  overdueCount: number;
+  hasRisk: boolean;
+}
+
+export interface CharacterRiskSummary {
+  characterId: string;
+  totalRisks: number;
+  dangerCount: number;
+  warningCount: number;
+  overdueCount: number;
+  highDifficultyConflictCount: number;
+  procurementNoBudgetCount: number;
+  procurementNotCompletedCount: number;
+  risks: RiskItem[];
+}
+
+export interface ProjectRiskSummary {
+  totalRisks: number;
+  dangerCount: number;
+  warningCount: number;
+  characterRisks: Record<string, CharacterRiskSummary>;
+  allRisks: RiskItem[];
+}
+
+export const RISK_TYPE_LABELS: Record<RiskType, string> = {
+  overdue: '已逾期',
+  high_difficulty_conflict: '高难度冲突',
+  procurement_no_budget: '采购无预算',
+  procurement_not_completed: '采购未完成',
+};
+
+export const HIGH_DIFFICULTY_LEVELS: DifficultyLevel[] = ['hard', 'expert'];

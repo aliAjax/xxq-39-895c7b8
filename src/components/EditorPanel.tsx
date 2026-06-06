@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { X, Trash2, Plus, Link, Image, Package, Wallet, Calendar, Bell, ListTodo, Copy, Check, CheckCircle2, Circle } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, Trash2, Plus, Link, Image, Package, Wallet, Calendar, Bell, ListTodo, Copy, Check, CheckCircle2, Circle, AlertTriangle, AlertCircle, Clock, ShoppingCart } from 'lucide-react';
 import {
   ClothingElement,
   ClothingCategory,
@@ -19,6 +19,10 @@ import { useMaterialStore } from '../store/useMaterialStore';
 import { MaterialSelector } from './MaterialSelector';
 import { TaskList } from './TaskList';
 import { formatDateString, parseDateString } from '../utils/dateUtils';
+import {
+  getElementRisks,
+  getRiskSeverityColor,
+} from '../utils/riskUtils';
 
 interface EditorPanelProps {
   isNew?: boolean;
@@ -74,6 +78,48 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
   const [newColor, setNewColor] = useState('#ffffff');
   const [newMaterial, setNewMaterial] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
+
+  const currentElementForRisk = useMemo((): ClothingElement => {
+    return {
+      id: element?.id || 'new',
+      name: formData.name || '',
+      category: formData.category as ClothingCategory,
+      colors: formData.colors || [],
+      materials: formData.materials || [],
+      difficulty: formData.difficulty as DifficultyLevel,
+      referenceImages: formData.referenceImages || [],
+      notes: formData.notes || '',
+      questions: formData.questions || '',
+      status: formData.status as ProductionStatus,
+      needToBuy: formData.needToBuy || false,
+      tasks: formData.tasks || [],
+      budget: budgetData,
+      scheduleStartDate: formData.scheduleStartDate,
+      scheduleDueDate: formData.scheduleDueDate,
+      scheduleReminder: formData.scheduleReminder,
+      createdAt: element?.createdAt || Date.now(),
+      updatedAt: element?.updatedAt || Date.now(),
+    };
+  }, [formData, budgetData, element]);
+
+  const elementRisks = useMemo(() => {
+    return getElementRisks(currentElementForRisk);
+  }, [currentElementForRisk]);
+
+  const getRiskIcon = (type: string) => {
+    switch (type) {
+      case 'overdue':
+        return <Clock size={12} />;
+      case 'high_difficulty_conflict':
+        return <AlertTriangle size={12} />;
+      case 'procurement_no_budget':
+        return <Wallet size={12} />;
+      case 'procurement_not_completed':
+        return <ShoppingCart size={12} />;
+      default:
+        return <AlertCircle size={12} />;
+    }
+  };
 
   useEffect(() => {
     if (element && !isNew) {
@@ -257,6 +303,34 @@ export function EditorPanel({ isNew = false }: EditorPanelProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
+        {elementRisks.hasRisk && (
+          <div className={`p-3 rounded-lg border ${getRiskSeverityColor(
+            elementRisks.highestSeverity as 'warning' | 'danger'
+          )}`}>
+            <div className="flex items-center gap-2 mb-2">
+              {elementRisks.highestSeverity === 'danger' ? (
+                <AlertTriangle size={16} />
+              ) : (
+                <AlertCircle size={16} />
+              )}
+              <span className="font-semibold text-sm">
+                检测到 {elementRisks.risks.length} 项风险
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {elementRisks.risks.map((risk, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-start gap-1.5 text-xs"
+                >
+                  {getRiskIcon(risk.type)}
+                  <span className="flex-1">{risk.message}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="block text-sm text-gray-400 mb-1.5">元素名称 *</label>
           <input

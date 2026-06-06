@@ -1,6 +1,7 @@
-import { Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Plus, Edit3, ListTodo, Package } from 'lucide-react';
+import { Crown, Shirt, Scissors, Footprints, Sparkles, Sword, Plus, Edit3, ListTodo, Package, AlertTriangle, AlertCircle } from 'lucide-react';
 import { ClothingElement, ClothingCategory, STATUS_LABELS, DIFFICULTY_LABELS, CATEGORY_LABELS } from '../types';
 import { useStore } from '../store/useStore';
+import { getElementRisks } from '../utils/riskUtils';
 
 const categoryIcons: Record<ClothingCategory, React.ElementType> = {
   head: Crown,
@@ -36,6 +37,8 @@ export function ElementCard({ element, index }: ElementCardProps) {
   const isSelected = selectedElementId === element.id;
   const isPlaceholder = !element.name.trim();
   const taskProgress = getTaskProgress(element);
+  const elementRisks = getElementRisks(element);
+  const hasRisk = elementRisks.hasRisk && !isPlaceholder;
 
   return (
     <div
@@ -49,7 +52,34 @@ export function ElementCard({ element, index }: ElementCardProps) {
       }`}
       style={{ animationDelay: `${index * 50}ms` }}
     >
-      <div className="absolute top-3 right-3">
+      {hasRisk && (
+        <div
+          className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${
+            elementRisks.highestSeverity === 'danger'
+              ? 'bg-red-500'
+              : 'bg-amber-500'
+          }`}
+        />
+      )}
+
+      <div className="absolute top-3 right-3 flex items-center gap-1.5">
+        {hasRisk && (
+          <div
+            className={`flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full ${
+              elementRisks.highestSeverity === 'danger'
+                ? 'bg-red-500/20 text-red-400'
+                : 'bg-amber-500/20 text-amber-400'
+            }`}
+            title={elementRisks.risks.map((r) => r.message).join('\n')}
+          >
+            {elementRisks.highestSeverity === 'danger' ? (
+              <AlertTriangle size={10} />
+            ) : (
+              <AlertCircle size={10} />
+            )}
+            <span>{elementRisks.risks.length}</span>
+          </div>
+        )}
         <span
           className={`text-xs px-2 py-1 rounded-full font-medium ${
             statusColors[element.status]

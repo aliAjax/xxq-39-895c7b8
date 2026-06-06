@@ -8,10 +8,12 @@ import {
   ShoppingCart,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
   X,
   Filter,
+  Wallet,
 } from 'lucide-react';
-import { ClothingElement, CATEGORY_LABELS, STATUS_LABELS, ProductionStatus } from '../types';
+import { ClothingElement, CATEGORY_LABELS, STATUS_LABELS, ProductionStatus, RiskItem } from '../types';
 import { useStore } from '../store/useStore';
 import {
   getStartOfDay,
@@ -23,6 +25,11 @@ import {
   isCurrentMonth as isCurrentMonthUtil,
   formatRangeText,
 } from '../utils/dateUtils';
+import {
+  getDateRisks,
+  getElementRisks,
+  getRiskSeverityColor,
+} from '../utils/riskUtils';
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
@@ -176,6 +183,39 @@ export function ScheduleCalendar() {
     );
   }, [scheduledElements.withoutSchedule, filterStatus]);
 
+  const weekDateRisks = useMemo(() => {
+    if (!character) return new Map<number, ReturnType<typeof getDateRisks>>();
+    const riskMap = new Map<number, ReturnType<typeof getDateRisks>>();
+    weekDates.forEach((date) => {
+      riskMap.set(date, getDateRisks(date, character.elements, character.id));
+    });
+    return riskMap;
+  }, [character, weekDates]);
+
+  const monthDateRisks = useMemo(() => {
+    if (!character) return new Map<number, ReturnType<typeof getDateRisks>>();
+    const riskMap = new Map<number, ReturnType<typeof getDateRisks>>();
+    monthDates.forEach((date) => {
+      riskMap.set(date, getDateRisks(date, character.elements, character.id));
+    });
+    return riskMap;
+  }, [character, monthDates]);
+
+  const getRiskIcon = (type: RiskItem['type']) => {
+    switch (type) {
+      case 'overdue':
+        return <Clock size={12} />;
+      case 'high_difficulty_conflict':
+        return <AlertTriangle size={12} />;
+      case 'procurement_no_budget':
+        return <Wallet size={12} />;
+      case 'procurement_not_completed':
+        return <ShoppingCart size={12} />;
+      default:
+        return <AlertCircle size={12} />;
+    }
+  };
+
   const getElementsForDate = useCallback(
     (date: number) => {
       return filteredScheduledElements.filter((el) => isSameDay(el.displayDate, date));
@@ -268,15 +308,25 @@ export function ScheduleCalendar() {
     const isDuring = !isStartDate && !isDueDate;
     const status = element.status as string;
     const isOverdue = isDueDate && status !== 'completed' && element.displayDate < getStartOfDay(Date.now());
+    const elementRisks = getElementRisks(element);
+    const hasRisk = elementRisks.hasRisk && (isStartDate || isDueDate || elementRisks.highestSeverity === 'danger');
 
     return (
       <div
         key={`${element.id}-${idx}`}
         onClick={() => handleElementClick(element.id)}
-        className={`p-2 rounded-lg border cursor-pointer transition-all hover:scale-[1.02] ${
+        className={`p-2 rounded-lg border cursor-pointer transition-all hover:scale-[1.02] relative ${
           isDuring ? 'opacity-70' : ''
         } ${getStatusColor(element)}`}
       >
+        {hasRisk && (
+          <div
+            className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full ${
+              elementRisks.highestSeverity === 'danger' ? 'bg-red-500' : 'bg-amber-500'
+            }`}
+            title={elementRisks.risks.map((r) => r.message).join('\n')}
+          />
+        )}
         <div className="flex items-center gap-1.5">
           {getStatusIcon(element)}
           <span className={`font-medium truncate ${compact ? 'text-xs' : 'text-sm'}`}>
@@ -321,6 +371,19 @@ export function ScheduleCalendar() {
                 </span>
               )}
             </div>
+            {hasRisk && elementRisks.risks.length > 0 && (isStartDate || isDueDate) && (
+              <div className="mt-2 space-y-1">
+                {elementRisks.risks.slice(0, 2).map((risk, riskIdx) => (
+                  <div
+                    key={riskIdx}
+                    className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${getRiskSeverityColor(risk.severity)}`}
+                  >
+                    {getRiskIcon(risk.type)}
+                    <span className="truncate">{risk.message}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {element.scheduleReminder && (isStartDate || isDueDate) && (
               <div className="flex items-start gap-1 mt-2 text-xs opacity-80">
                 <Bell size={10} className="mt-0.5 flex-shrink-0" />
@@ -344,45 +407,79 @@ export function ScheduleCalendar() {
         const weekday = WEEKDAYS[dateObj.getDay()];
         const elements = getElementsForDate(date);
         const today = isTodayUtil(date);
+        const dateRisk = weekDateRisks.get(date);
+        const hasDateRisk = dateRisk && dateRisk.hasRisk;
 
         return (
           <div key={date} className="bg-white/5 rounded-xl overflow-hidden">
-            <div
-              className={`px-4 py-2 flex items-center justify-between ${
-                today ? 'bg-accent/20 border-b border-accent/30' : 'bg-white/5 border-b border-white/10'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-sm font-medium ${
-                    today ? 'text-accent' : 'text-gray-400'
-                  }`}
-                >
-                  {weekday}
-                </span>
-                <span
-                  className={`text-lg font-bold ${
-                    today ? 'text-white' : 'text-gray-300'
-                  }`}
-                >
-                  {month}/{day}
-                </span>
-              </div>
-              {elements.length > 0 && (
-                <span className="text-xs text-gray-500">
-                  {elements.length} 项
-                </span>
+          <div
+            className={`px-4 py-2 flex items-center justify-between ${
+              today ? 'bg-accent/20 border-b border-accent/30' : 'bg-white/5 border-b border-white/10'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-sm font-medium ${
+                  today ? 'text-accent' : 'text-gray-400'
+                }`}
+              >
+                {weekday}
+              </span>
+              <span
+                className={`text-lg font-bold ${
+                  today ? 'text-white' : 'text-gray-300'
+                }`}
+              >
+                {month}/{day}
+              </span>
+              {hasDateRisk && (
+                <div className="flex items-center gap-1 ml-2">
+                  {dateRisk!.risks.some((r) => r.severity === 'danger') && (
+                    <div className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded">
+                      <AlertTriangle size={10} />
+                      <span>{dateRisk!.risks.filter((r) => r.severity === 'danger').length}</span>
+                    </div>
+                  )}
+                  {dateRisk!.risks.some((r) => r.severity === 'warning') && (
+                    <div className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded">
+                      <AlertCircle size={10} />
+                      <span>{dateRisk!.risks.filter((r) => r.severity === 'warning').length}</span>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-
-            <div className="p-3 space-y-2">
-              {elements.length === 0 ? (
-                <p className="text-xs text-gray-600 text-center py-2">暂无排期</p>
-              ) : (
-                elements.map((element, idx) => renderElementCard(element, idx, false))
-              )}
-            </div>
+            {elements.length > 0 && (
+              <span className="text-xs text-gray-500">
+                {elements.length} 项
+              </span>
+            )}
           </div>
+
+          {hasDateRisk && dateRisk!.highDifficultyConflictCount > 0 && (
+            <div className="px-3 pt-2">
+              {dateRisk!.risks
+                .filter((r) => r.type === 'high_difficulty_conflict')
+                .map((risk, riskIdx) => (
+                  <div
+                    key={riskIdx}
+                    className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg mb-1 ${getRiskSeverityColor(risk.severity)}`}
+                  >
+                    {getRiskIcon(risk.type)}
+                    <span className="flex-1">{risk.message}</span>
+                  </div>
+                ))}
+            </div>
+          )}
+
+          <div className="p-3 space-y-2">
+            {elements.length === 0 ? (
+              <p className="text-xs text-gray-600 text-center py-2">暂无排期</p>
+            ) : (
+              elements.map((element, idx) => renderElementCard(element, idx, false))
+            )}
+          </div>
+        </div>
         );
       })}
     </div>
@@ -408,14 +505,27 @@ export function ScheduleCalendar() {
             const elements = getElementsForDate(date);
             const today = isTodayUtil(date);
             const inMonth = isCurrentMonthUtil(date, currentAnchor);
+            const dateRisk = monthDateRisks.get(date);
+            const hasDateRisk = dateRisk && dateRisk.hasRisk && inMonth;
 
             return (
               <div
                 key={date}
-                className={`bg-primary-light min-h-[100px] p-1.5 flex flex-col ${
+                className={`bg-primary-light min-h-[100px] p-1.5 flex flex-col relative ${
                   !inMonth ? 'opacity-40' : ''
                 }`}
               >
+                {hasDateRisk && (
+                  <div className="absolute top-0 right-0 left-0 h-0.5 flex">
+                    {dateRisk!.risks.some((r) => r.severity === 'danger') && (
+                      <div className="flex-1 bg-red-500" />
+                    )}
+                    {!dateRisk!.risks.some((r) => r.severity === 'danger') &&
+                      dateRisk!.risks.some((r) => r.severity === 'warning') && (
+                        <div className="flex-1 bg-amber-500" />
+                      )}
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-1">
                   <span
                     className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${
@@ -428,24 +538,50 @@ export function ScheduleCalendar() {
                   >
                     {new Date(date).getDate()}
                   </span>
-                  {elements.length > 0 && (
-                    <span className="text-[10px] text-gray-500 pr-1">
-                      {elements.length}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-0.5">
+                    {hasDateRisk && (
+                      <div
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          dateRisk!.risks.some((r) => r.severity === 'danger')
+                            ? 'bg-red-500'
+                            : 'bg-amber-500'
+                        }`}
+                        title={dateRisk!.risks.map((r) => r.message).join('\n')}
+                      />
+                    )}
+                    {elements.length > 0 && (
+                      <span className="text-[10px] text-gray-500 pr-0.5">
+                        {elements.length}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-1 overflow-hidden flex-1">
-                  {elements.slice(0, 3).map((element, idx) => (
-                    <div
-                      key={`${element.id}-${idx}`}
-                      onClick={() => handleElementClick(element.id)}
-                      className={`text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80 transition-opacity ${
-                        getStatusColor(element)
-                      }`}
-                    >
-                      {element.name || '未命名'}
-                    </div>
-                  ))}
+                  {elements.slice(0, 3).map((element, idx) => {
+                    const elementRisks = getElementRisks(element);
+                    return (
+                      <div
+                        key={`${element.id}-${idx}`}
+                        onClick={() => handleElementClick(element.id)}
+                        className={`text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80 transition-opacity relative ${
+                          getStatusColor(element)
+                        }`}
+                      >
+                        {elementRisks.hasRisk && (
+                          <div
+                            className={`absolute left-0 top-0 bottom-0 w-0.5 rounded-l ${
+                              elementRisks.highestSeverity === 'danger'
+                                ? 'bg-red-500'
+                                : 'bg-amber-500'
+                            }`}
+                          />
+                        )}
+                        <span className={elementRisks.hasRisk ? 'pl-1' : ''}>
+                          {element.name || '未命名'}
+                        </span>
+                      </div>
+                    );
+                  })}
                   {elements.length > 3 && (
                     <div className="text-[10px] text-gray-500 px-1.5">
                       +{elements.length - 3} 更多
@@ -610,6 +746,15 @@ export function ScheduleCalendar() {
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded bg-red-500/50" />
             <span className="text-gray-400">已逾期</span>
+          </div>
+          <div className="w-px bg-white/10 mx-1" />
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-red-500" />
+            <span className="text-gray-400">严重风险</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-amber-500" />
+            <span className="text-gray-400">一般风险</span>
           </div>
         </div>
       </div>
