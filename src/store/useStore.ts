@@ -128,7 +128,16 @@ export const useStore = create<StoreState>((set) => ({
 
   setActiveCharacter: (id) => {
     useCharacterStore.getState().setActiveCharacter(id);
-    useUIStore.getState().closeAllPanels();
+    useUIStore.setState({
+      showReferenceBoard: false,
+      showColorPalette: false,
+      showBudgetPanel: false,
+      showPrintSpecification: false,
+      showScheduleCalendar: false,
+      showSettings: false,
+      showProjectOverview: false,
+      showMaterialSummary: false,
+    });
     set(getCombinedState());
   },
 
